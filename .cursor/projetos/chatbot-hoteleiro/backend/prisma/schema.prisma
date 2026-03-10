@@ -1,0 +1,224 @@
+// Schema do Banco de Dados - Chatbot Hoteleiro (SQLite para testes)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// USUÁRIOS E AUTENTICAÇÃO
+// ============================================
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      String   @default("ADMIN") // SUPER_ADMIN, ADMIN, MANAGER, AGENT
+  hotelId   String?
+  hotel     Hotel?   @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+// ============================================
+// HOTÉIS
+// ============================================
+
+model Hotel {
+  id          String   @id @default(uuid())
+  name        String
+  phone       String?
+  email       String?
+  address     String?
+  city        String?
+  state       String?
+  country     String   @default("Brasil")
+  
+  // Configurações
+  checkInTime  String   @default("14:00")
+  checkOutTime String   @default("12:00")
+  timezone     String   @default("America/Sao_Paulo")
+  
+  // WhatsApp
+  whatsappNumber String?
+  whatsappEnabled Boolean @default(false)
+  
+  // Status
+  isActive    Boolean  @default(true)
+  plan        String   @default("STARTER") // STARTER, BUSINESS, ENTERPRISE
+  
+  // Relacionamentos
+  users         User[]
+  faqs          FAQ[]
+  conversations Conversation[]
+  messages      Message[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("hotels")
+}
+
+// ============================================
+// FAQ (PERGUNTAS E RESPOSTAS)
+// ============================================
+
+model FAQ {
+  id        String   @id @default(uuid())
+  hotelId   String
+  hotel     Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  
+  question  String
+  answer    String
+  category  String?
+  keywords  String? // Palavras-chave separadas por vírgula
+  
+  isActive  Boolean  @default(true)
+  order     Int      @default(0)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("faqs")
+}
+
+// ============================================
+// CONVERSAS
+// ============================================
+
+model Conversation {
+  id        String   @id @default(uuid())
+  hotelId   String
+  hotel     Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  
+  // Informações do hóspede
+  guestName   String?
+  guestPhone  String
+  guestEmail  String?
+  
+  // Status da conversa
+  status      String  @default("ACTIVE") // ACTIVE, RESOLVED, WAITING, CLOSED
+  channel     String  @default("WHATSAPP") // WHATSAPP, WEBSITE, FACEBOOK, INSTAGRAM
+  
+  // Controle
+  isHandedOver Boolean  @default(false) // Se foi transferida para humano
+  handedOverAt DateTime?
+  handedOverBy String?
+  
+  // Métricas
+  messageCount Int      @default(0)
+  botResponses Int      @default(0)
+  humanResponses Int    @default(0)
+  
+  // Relacionamentos
+  messages    Message[]
+  
+  startedAt   DateTime @default(now())
+  endedAt     DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([hotelId, status])
+  @@index([guestPhone])
+  @@map("conversations")
+}
+
+// ============================================
+// MENSAGENS
+// ============================================
+
+model Message {
+  id             String   @id @default(uuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  
+  hotelId   String
+  hotel     Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  
+  // Conteúdo
+  content   String
+  direction String // INBOUND, OUTBOUND
+  sender    String @default("BOT") // BOT, HUMAN, SYSTEM
+  
+  // Informações da IA
+  aiModel       String?        // gpt-4, gpt-3.5-turbo, etc
+  aiTokens      Int?           // Tokens usados
+  aiConfidence  Float?         // Confiança da resposta (0-1)
+  aiIntent      String?        // Intenção detectada
+  
+  // Status de entrega (WhatsApp)
+  messageId     String?        // ID da mensagem no Twilio
+  status        String  @default("SENT") // SENT, DELIVERED, READ, FAILED
+  deliveredAt   DateTime?
+  readAt        DateTime?
+  
+  // Metadados
+  metadata      String?        // Dados adicionais (JSON string)
+  
+  createdAt     DateTime       @default(now())
+
+  @@index([conversationId])
+  @@index([hotelId, createdAt])
+  @@map("messages")
+}
+
+// ============================================
+// MÉTRICAS E ANALYTICS
+// ============================================
+
+model DailyMetrics {
+  id      String   @id @default(uuid())
+  hotelId String
+  date    DateTime
+  
+  // Conversas
+  totalConversations   Int @default(0)
+  activeConversations  Int @default(0)
+  resolvedConversations Int @default(0)
+  
+  // Mensagens
+  totalMessages        Int @default(0)
+  inboundMessages      Int @default(0)
+  outboundMessages     Int @default(0)
+  botResponses         Int @default(0)
+  humanResponses       Int @default(0)
+  
+  // Performance
+  avgResponseTime      Float? // Em segundos
+  botResolutionRate    Float? // % de conversas resolvidas pelo bot
+  satisfactionScore    Float? // NPS ou CSAT
+  
+  // Custos
+  aiTokensUsed         Int    @default(0)
+  aiCost               Float  @default(0)
+  
+  createdAt DateTime @default(now())
+  
+  @@unique([hotelId, date])
+  @@map("daily_metrics")
+}
+
+// ============================================
+// LOGS DO SISTEMA
+// ============================================
+
+model SystemLog {
+  id        String   @id @default(uuid())
+  level     String // INFO, WARN, ERROR, DEBUG
+  message   String
+  context   String?
+  hotelId   String?
+  userId    String?
+  createdAt DateTime @default(now())
+
+  @@index([level, createdAt])
+  @@map("system_logs")
+}
+
