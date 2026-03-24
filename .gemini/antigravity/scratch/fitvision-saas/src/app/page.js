@@ -27,11 +27,7 @@ export default function LandingPage() {
                 Como Funciona
               </a>
             </li>
-            <li>
-              <a href="#pricing" className={styles.navLink}>
-                Planos
-              </a>
-            </li>
+
             <li>
               <a href="/dashboard" className="btn btn-primary btn-sm">
                 Acessar Plataforma
@@ -284,84 +280,8 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ====== PRICING ====== */}
-      <section id="pricing" className={styles.pricing}>
-        <div className="container text-center">
-          <div className={styles.sectionLabel}>✦ Planos</div>
-          <h2 className={styles.sectionTitle}>
-            Escolha o plano{" "}
-            <span className="text-gradient">ideal para você</span>
-          </h2>
-          <p className={styles.sectionSubtitle}>
-            Comece gratuitamente e escale conforme sua base de alunos cresce.
-          </p>
-          <div className={styles.pricingGrid}>
-            {/* Free */}
-            <div className={`card ${styles.pricingCard}`}>
-              <h3 className={styles.pricingName}>Starter</h3>
-              <div className={styles.pricingPrice}>
-                R$<span>0</span>
-              </div>
-              <div className={styles.pricingPeriod}>para sempre</div>
-              <div className={styles.pricingDivider} />
-              <ul className={styles.pricingFeatures}>
-                <li className={styles.pricingFeature}>Até 5 alunos</li>
-                <li className={styles.pricingFeature}>Avaliação por fotos</li>
-                <li className={styles.pricingFeature}>Anamnese digital</li>
-                <li className={styles.pricingFeature}>Banco de exercícios</li>
-              </ul>
-              <a href="/dashboard" className="btn btn-outline" style={{ width: '100%' }}>
-                Começar Grátis
-              </a>
-            </div>
-
-            {/* Pro */}
-            <div
-              className={`card ${styles.pricingCard} ${styles.pricingFeatured}`}
-            >
-              <div className={styles.pricingBadge}>
-                <span className="badge badge-primary">Popular</span>
-              </div>
-              <h3 className={styles.pricingName}>Pro</h3>
-              <div className={`${styles.pricingPrice} text-gradient`}>
-                R$<span>49</span>
-              </div>
-              <div className={styles.pricingPeriod}>/mês</div>
-              <div className={styles.pricingDivider} />
-              <ul className={styles.pricingFeatures}>
-                <li className={styles.pricingFeature}>Até 50 alunos</li>
-                <li className={styles.pricingFeature}>Treino inteligente com IA</li>
-                <li className={styles.pricingFeature}>Comparação de evolução</li>
-                <li className={styles.pricingFeature}>Alerta de renovação</li>
-                <li className={styles.pricingFeature}>Suporte prioritário</li>
-              </ul>
-              <a href="/dashboard" className="btn btn-primary" style={{ width: '100%' }}>
-                Assinar Agora
-              </a>
-            </div>
-
-            {/* Enterprise */}
-            <div className={`card ${styles.pricingCard}`}>
-              <h3 className={styles.pricingName}>Enterprise</h3>
-              <div className={styles.pricingPrice}>
-                R$<span>149</span>
-              </div>
-              <div className={styles.pricingPeriod}>/mês</div>
-              <div className={styles.pricingDivider} />
-              <ul className={styles.pricingFeatures}>
-                <li className={styles.pricingFeature}>Alunos ilimitados</li>
-                <li className={styles.pricingFeature}>Multi-personal (equipe)</li>
-                <li className={styles.pricingFeature}>API personalizada</li>
-                <li className={styles.pricingFeature}>White-label</li>
-                <li className={styles.pricingFeature}>Suporte dedicado</li>
-              </ul>
-              <a href="/dashboard" className="btn btn-outline" style={{ width: '100%' }}>
-                Fale Conosco
-              </a>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* ====== PRICING (TEMPORARILY HIDDEN) ====== */}
+      {/* Pricing section hidden per user request to test app without dealing with plans */}
 
       {/* ====== CTA ====== */}
       <section className={styles.cta}>
