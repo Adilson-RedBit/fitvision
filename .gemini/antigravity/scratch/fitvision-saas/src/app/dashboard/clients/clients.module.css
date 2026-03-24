@@ -1,0 +1,334 @@
+.searchContainer {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+    align-items: center;
+}
+
+.searchInputWrapper {
+    flex: 1;
+    position: relative;
+}
+
+.searchInput {
+    width: 100%;
+    padding: 12px 16px 12px 40px;
+    border-radius: var(--radius-full);
+    border: 1px solid var(--border);
+    background: white;
+    font-size: 0.95rem;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.searchInput:focus {
+    border-color: var(--primary);
+}
+
+.searchIcon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: 1rem;
+}
+
+.fabAdd {
+    padding: 0 16px;
+    height: 46px;
+    border-radius: 12px;
+    background: var(--success);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+    transition: transform 0.2s;
+}
+
+.fabAdd:active {
+    transform: scale(0.95);
+}
+
+/* ---- Client Cards Grid ---- */
+.clientsGrid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.clientCard {
+    padding: 16px;
+    background: #ffffff;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    text-decoration: none;
+    color: inherit;
+    transition: transform 0.2s;
+}
+
+.clientCard:active {
+    transform: scale(0.98);
+}
+
+.clientAvatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: #f0f2f5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    color: var(--primary);
+    flex-shrink: 0;
+}
+
+.clientInfo {
+    flex: 1;
+}
+
+.statusIndicator {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-bottom: 2px;
+}
+
+.statusDot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.statusActive {
+    color: #8a8a8a;
+}
+
+/* Default gray */
+.statusActive .statusDot {
+    background: #4CAF50;
+}
+
+.statusBlocked {
+    color: #8a8a8a;
+}
+
+.statusBlocked .statusDot {
+    background: #FF5252;
+}
+
+.clientName {
+    font-weight: 700;
+    font-size: 1.05rem;
+    color: var(--text-primary);
+}
+
+/* Redefine old classes for compatibility if needed or remove */
+.clientCardAvatar {
+    display: none;
+}
+
+.clientCardName {
+    display: none;
+}
+
+.clientCardEmail {
+    display: none;
+}
+
+.clientCardMeta {
+    display: none;
+}
+
+.clientCardActions {
+    display: none;
+}
+
+/* ---- Summary Text ---- */
+.clientsSummary {
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin: 20px 0;
+}
+
+.summaryHighlight {
+    color: var(--primary);
+    font-weight: 600;
+}
+
+
+/* ---- Modal / Form ---- */
+.modalOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(8px);
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    animation: fadeIn 0.2s ease;
+}
+
+.modal {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    width: 100%;
+    max-width: 520px;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: fadeInUp 0.3s ease;
+}
+
+.modalHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
+}
+
+.modalTitle {
+    font-family: var(--font-display);
+    font-size: 1.2rem;
+    font-weight: 700;
+}
+
+.modalClose {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    transition: background var(--transition-fast);
+}
+
+.modalClose:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.modalBody {
+    padding: 24px;
+}
+
+.formGroup {
+    margin-bottom: 16px;
+}
+
+.formLabel {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: var(--text-secondary);
+}
+
+.formInput {
+    width: 100%;
+    padding: 10px 14px;
+    font-size: 0.9rem;
+}
+
+.formSelect {
+    width: 100%;
+    padding: 10px 14px;
+    font-size: 0.9rem;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b6b8d' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+}
+
+.modalFooter {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+}
+
+@media (max-width: 768px) {
+    .clientsGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .clientCardMeta {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Onboarding success state */
+.successContainer {
+    text-align: center;
+    padding: 20px 10px;
+}
+
+.successIcon {
+    font-size: 3rem;
+    margin-bottom: 16px;
+}
+
+.successText {
+    font-size: 1.1rem;
+    color: var(--text-main);
+    margin-bottom: 8px;
+}
+
+.successSubtext {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin-bottom: 24px;
+}
+
+.linkCopyBox {
+    display: flex;
+    background: var(--bg-light);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px;
+    gap: 8px;
+    margin-bottom: 24px;
+}
+
+.linkInput {
+    flex: 1;
+    background: transparent;
+    border: none;
+    font-size: 0.85rem;
+    color: var(--text-main);
+    outline: none;
+}
+
+.copyBtn {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.formHelp {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-top: 12px;
+    display: block;
+    text-align: center;
+}

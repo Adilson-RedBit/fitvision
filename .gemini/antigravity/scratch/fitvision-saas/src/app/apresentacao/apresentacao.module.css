@@ -1,0 +1,441 @@
+/* Presentation Styles */
+
+.presentationPage {
+    min-height: 100vh;
+    background: var(--bg-dark);
+    overflow-x: hidden;
+}
+
+/* ---- Navigation ---- */
+.presNav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    padding: 12px 0;
+    background: rgba(10, 10, 20, 0.85);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+}
+
+.presNavContent {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.presLogo {
+    font-family: var(--font-display);
+    font-size: 1.3rem;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.presLogoIcon {
+    width: 32px;
+    height: 32px;
+    background: var(--gradient-primary);
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+}
+
+/* ---- Hero / Attention ---- */
+.presHero {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    text-align: center;
+    background: var(--gradient-hero);
+}
+
+.presHeroOrb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(120px);
+    pointer-events: none;
+}
+
+.presHeroOrb1 {
+    width: 600px;
+    height: 600px;
+    background: rgba(108, 92, 231, 0.12);
+    top: -200px;
+    right: -100px;
+    animation: float 8s ease-in-out infinite;
+}
+
+.presHeroOrb2 {
+    width: 400px;
+    height: 400px;
+    background: rgba(0, 229, 160, 0.08);
+    bottom: -100px;
+    left: -100px;
+    animation: float 10s ease-in-out infinite reverse;
+}
+
+.presHeroContent {
+    position: relative;
+    z-index: 1;
+    max-width: 750px;
+    padding: 0 24px;
+}
+
+.presTag {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 20px;
+    background: rgba(108, 92, 231, 0.1);
+    border: 1px solid rgba(108, 92, 231, 0.2);
+    border-radius: var(--radius-full);
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--primary-light);
+    margin-bottom: 28px;
+    letter-spacing: 0.5px;
+}
+
+.presHeroTitle {
+    font-family: var(--font-display);
+    font-size: clamp(2.2rem, 5vw, 3.6rem);
+    font-weight: 900;
+    line-height: 1.1;
+    margin-bottom: 20px;
+    letter-spacing: -1px;
+}
+
+.presHeroSub {
+    font-size: 1.15rem;
+    color: var(--text-secondary);
+    line-height: 1.7;
+    margin-bottom: 36px;
+    max-width: 580px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.presScrollHint {
+    margin-top: 48px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    animation: float 2s ease-in-out infinite;
+}
+
+.presScrollArrow {
+    font-size: 1.4rem;
+}
+
+/* ---- Sections ---- */
+.presSection {
+    padding: 80px 0;
+    position: relative;
+}
+
+.presSectionAlt {
+    background: var(--bg-surface);
+}
+
+.presSectionTag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: var(--radius-full);
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 12px;
+}
+
+.tagPurple {
+    background: rgba(108, 92, 231, 0.12);
+    color: var(--primary-light);
+    border: 1px solid rgba(108, 92, 231, 0.2);
+}
+
+.tagGreen {
+    background: rgba(0, 229, 160, 0.1);
+    color: var(--accent);
+    border: 1px solid rgba(0, 229, 160, 0.2);
+}
+
+.tagBlue {
+    background: rgba(116, 185, 255, 0.1);
+    color: var(--info);
+    border: 1px solid rgba(116, 185, 255, 0.2);
+}
+
+.tagYellow {
+    background: rgba(253, 203, 110, 0.1);
+    color: var(--warning);
+    border: 1px solid rgba(253, 203, 110, 0.2);
+}
+
+.presSectionTitle {
+    font-family: var(--font-display);
+    font-size: clamp(1.8rem, 3.5vw, 2.5rem);
+    font-weight: 800;
+    margin-bottom: 14px;
+    letter-spacing: -0.5px;
+}
+
+.presSectionSub {
+    font-size: 1.05rem;
+    color: var(--text-secondary);
+    max-width: 600px;
+    line-height: 1.6;
+    margin-bottom: 40px;
+}
+
+.presSectionSubCenter {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* ---- Screenshot Frame ---- */
+.screenshotFrame {
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+    border: 2px solid var(--border-strong);
+    box-shadow: var(--shadow-lg), 0 0 60px rgba(108, 92, 231, 0.08);
+    background: var(--bg-card);
+    transition: transform var(--transition-slow), box-shadow var(--transition-slow);
+}
+
+.screenshotFrame:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg), 0 0 80px rgba(108, 92, 231, 0.15);
+}
+
+.screenshotFrame img {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+.screenshotBar {
+    height: 36px;
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 14px;
+    gap: 8px;
+}
+
+.screenshotDot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.screenshotDotRed {
+    background: #ff5f57;
+}
+
+.screenshotDotYellow {
+    background: #febc2e;
+}
+
+.screenshotDotGreen {
+    background: #28c840;
+}
+
+/* ---- Grid Layout ---- */
+.presSplitGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+    align-items: center;
+}
+
+.presSplitReverse {
+    direction: rtl;
+}
+
+.presSplitReverse>* {
+    direction: ltr;
+}
+
+/* ---- Feature Bullets ---- */
+.presBullets {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-top: 20px;
+}
+
+.presBullet {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 14px 18px;
+    background: var(--gradient-glass);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+}
+
+.presBulletIcon {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-sm);
+    background: rgba(108, 92, 231, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}
+
+.presBulletTitle {
+    font-weight: 700;
+    font-size: 0.95rem;
+    margin-bottom: 2px;
+}
+
+.presBulletDesc {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+/* ---- Steps ---- */
+.presSteps {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    margin-top: 40px;
+}
+
+.presStep {
+    text-align: center;
+    padding: 24px 16px;
+    background: var(--gradient-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+}
+
+.presStepNum {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-display);
+    font-size: 1.2rem;
+    font-weight: 800;
+    margin-bottom: 12px;
+    background: rgba(108, 92, 231, 0.12);
+    color: var(--primary-light);
+    border: 2px solid rgba(108, 92, 231, 0.25);
+}
+
+.presStepTitle {
+    font-weight: 700;
+    font-size: 0.95rem;
+    margin-bottom: 4px;
+}
+
+.presStepDesc {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+/* ---- CTA ---- */
+.presCta {
+    padding: 80px 0;
+    text-align: center;
+}
+
+.presCtaBox {
+    background: var(--gradient-glass);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    padding: 56px 32px;
+    position: relative;
+    overflow: hidden;
+}
+
+.presCtaBox::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: var(--radius-xl);
+    padding: 2px;
+    background: var(--gradient-primary);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0.3;
+}
+
+.presCtaTitle {
+    font-family: var(--font-display);
+    font-size: clamp(1.8rem, 3.5vw, 2.6rem);
+    font-weight: 800;
+    margin-bottom: 12px;
+}
+
+.presCtaSub {
+    font-size: 1.05rem;
+    color: var(--text-secondary);
+    margin-bottom: 32px;
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* ---- Screenshot Gallery ---- */
+.presGallery {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-top: 32px;
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 1024px) {
+    .presSplitGrid {
+        grid-template-columns: 1fr;
+        gap: 32px;
+    }
+
+    .presSplitReverse {
+        direction: ltr;
+    }
+
+    .presSteps {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .presSteps {
+        grid-template-columns: 1fr;
+    }
+
+    .presGallery {
+        grid-template-columns: 1fr;
+    }
+
+    .presHero {
+        min-height: auto;
+        padding: 120px 0 60px;
+    }
+}
