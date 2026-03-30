@@ -1,24 +1,24 @@
 "use client";
 
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { useParams } from "next/navigation";
 import styles from "../onboarding.module.css";
-
-const clientsMock = [
-    { id: 1, name: "Rafael Mendes" },
-    { id: 2, name: "Carla Silva" },
-    { id: 3, name: "João Pedro" },
-    { id: 4, name: "Ana Costa" },
-    { id: 5, name: "Lucas Oliveira" },
-    { id: 6, name: "Marina Santos" },
-];
+import { getStudent, saveStudent } from "../../../utils/storage";
 
 export default function OnboardingPage() {
     const params = useParams();
-    const studentId = parseInt(params.id);
-    const student = useMemo(() =>
-        clientsMock.find(c => c.id === studentId) || { name: "Aluno" }
-        , [studentId]);
+    const studentId = params.id;
+    
+    const [student, setStudent] = useState({ name: "Carregando..." });
+
+    useEffect(() => {
+        const data = getStudent(studentId);
+        if (data) {
+            setStudent(data);
+        } else {
+            setStudent({ name: "Aluno" });
+        }
+    }, [studentId]);
 
     const [submitted, setSubmitted] = useState(false);
     const [cameraActive, setCameraActive] = useState(false);
@@ -72,14 +72,36 @@ export default function OnboardingPage() {
     const handleFileChange = (side, e) => {
         console.log(`Alteração de arquivo detectada para: ${side}`);
         if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
             const reader = new FileReader();
             reader.onload = (event) => {
-                setForm(prev => ({
-                    ...prev,
-                    photos: { ...prev.photos, [side]: event.target.result }
-                }));
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement("canvas");
+                    const MAX_SIZE = 800;
+                    let width = img.width;
+                    let height = img.height;
+                    if (width > height && width > MAX_SIZE) {
+                        height = Math.round((height * MAX_SIZE) / width);
+                        width = MAX_SIZE;
+                    } else if (height > MAX_SIZE) {
+                        width = Math.round((width * MAX_SIZE) / height);
+                        height = MAX_SIZE;
+                    }
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext("2d");
+                    ctx.drawImage(img, 0, 0, width, height);
+                    const resizedUrl = canvas.toDataURL("image/jpeg", 0.7);
+
+                    setForm(prev => ({
+                        ...prev,
+                        photos: { ...prev.photos, [side]: resizedUrl }
+                    }));
+                };
+                img.src = event.target.result;
             };
-            reader.readAsDataURL(e.target.files[0]);
+            reader.readAsDataURL(file);
         }
     };
 
@@ -110,12 +132,23 @@ export default function OnboardingPage() {
     const capturePhoto = () => {
         const video = videoRef.current;
         const canvas = document.createElement("canvas");
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const MAX_SIZE = 800;
+        let width = video.videoWidth;
+        let height = video.videoHeight;
+        if (width > height && width > MAX_SIZE) {
+            height = Math.round((height * MAX_SIZE) / width);
+            width = MAX_SIZE;
+        } else if (height > MAX_SIZE) {
+            width = Math.round((width * MAX_SIZE) / height);
+            height = MAX_SIZE;
+        }
 
-        const imageData = canvas.toDataURL("image/jpeg");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(video, 0, 0, width, height);
+
+        const imageData = canvas.toDataURL("image/jpeg", 0.7);
         setForm(prev => ({
             ...prev,
             photos: { ...prev.photos, [currentPhotoSide]: imageData }
@@ -126,8 +159,39 @@ export default function OnboardingPage() {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        console.log("Tentativa de envio do formulário...");
-        console.log("Dados do formulário:", form);
+        
+        if (student.id) {
+            const updatedStudent = {
+                ...student,
+                status: "Aguardando Treino",
+                anamnesis: {
+                    basics: {
+                        email: form.email,
+                        phone: form.phone,
+                        birth: form.birthDate,
+                        goal: form.goal,
+                        weight: form.weight,
+                        height: form.height
+                    },
+                    injuries: form.injuries,
+                    otherInjuryDetails: form.otherInjuryDetails,
+                    hadSurgery: form.hadSurgery,
+                    surgeryDetails: form.surgeryDetails,
+                    surgeryTime: form.surgeryTime,
+                    lifestyle: {
+                        trainingDays: form.trainingDays,
+                        muscleDifficulty: form.muscleDifficulty,
+                        cardioFrequency: form.cardioFrequency,
+                        alcohol: form.alcohol,
+                        smoke: form.smoke,
+                        dietRating: form.dietRating
+                    },
+                    photos: form.photos
+                }
+            };
+            saveStudent(studentId, updatedStudent);
+        }
+
         setSubmitted(true);
     };
 
@@ -424,10 +488,16 @@ export default function OnboardingPage() {
                                                 className={styles.actionBtn}
                                                 onClick={() => {
                                                     console.log(`Trocar clicado para: ${slot.id}`);
-                                                    startCamera(slot.id);
+                                                    setForm(prev => ({
+                                                        ...prev,
+                                                        photos: { ...prev.photos, [slot.id]: null }
+                                                    }));
+                                                    if (fileInputRefs[slot.id].current) {
+                                                        fileInputRefs[slot.id].current.value = "";
+                                                    }
                                                 }}
                                             >
-                                                Trocar
+                                                Remover / Trocar
                                             </button>
                                         </div>
                                     </>

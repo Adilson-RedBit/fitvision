@@ -1,237 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import styles from "../client.module.css";
 import Link from "next/link";
 
-/* ===== EXERCISE DATA PER WORKOUT DAY ===== */
-const workoutDays = {
-    A: {
-        label: "Treino A",
-        focus: "Peito / Tríceps",
-        exercises: [
-            {
-                id: 1,
-                name: "Supino Reto com Barra",
-                muscle: "Peito",
-                icon: "🏋️",
-                sets: 4,
-                defaultReps: "12x",
-                note: "Diminui repetição — aumenta carga",
-                videoUrl: "#",
-            },
-            {
-                id: 2,
-                name: "Supino Inclinado com Halteres",
-                muscle: "Peito Superior",
-                icon: "🏋️",
-                sets: 4,
-                defaultReps: "10x",
-                note: "",
-                videoUrl: "#",
-            },
-            {
-                id: 3,
-                name: "Crucifixo na Máquina",
-                muscle: "Peito",
-                icon: "🏋️",
-                sets: 3,
-                defaultReps: "15x",
-                note: "Manter contração no pico",
-                videoUrl: "#",
-            },
-            {
-                id: 4,
-                name: "Tríceps Pulley (Corda)",
-                muscle: "Tríceps",
-                icon: "💪",
-                sets: 4,
-                defaultReps: "15x",
-                note: "",
-                videoUrl: "#",
-            },
-            {
-                id: 5,
-                name: "Tríceps Testa com Barra EZ",
-                muscle: "Tríceps",
-                icon: "💪",
-                sets: 3,
-                defaultReps: "12x",
-                note: "Manter cotovelos fixos",
-                videoUrl: "#",
-            },
-        ],
-    },
-    B: {
-        label: "Treino B",
-        focus: "Costas / Bíceps",
-        exercises: [
-            {
-                id: 6,
-                name: "Puxada Frontal Aberta",
-                muscle: "Costas",
-                icon: "💪",
-                sets: 4,
-                defaultReps: "12x",
-                note: "",
-                videoUrl: "#",
-            },
-            {
-                id: 7,
-                name: "Remada Curvada com Barra",
-                muscle: "Costas",
-                icon: "💪",
-                sets: 4,
-                defaultReps: "10x",
-                note: "Manter lombar neutra",
-                videoUrl: "#",
-            },
-            {
-                id: 8,
-                name: "Remada Unilateral com Halter",
-                muscle: "Dorsal",
-                icon: "💪",
-                sets: 3,
-                defaultReps: "12x",
-                note: "",
-                videoUrl: "#",
-            },
-            {
-                id: 9,
-                name: "Rosca Direta com Barra",
-                muscle: "Bíceps",
-                icon: "💪",
-                sets: 3,
-                defaultReps: "12x",
-                note: "",
-                videoUrl: "#",
-            },
-            {
-                id: 10,
-                name: "Rosca Martelo com Halteres",
-                muscle: "Bíceps",
-                icon: "💪",
-                sets: 3,
-                defaultReps: "15x",
-                note: "Alternado",
-                videoUrl: "#",
-            },
-        ],
-    },
-    C: {
-        label: "Treino C",
-        focus: "Pernas / Glúteos",
-        exercises: [
-            {
-                id: 11,
-                name: "Agachamento Livre com Barra",
-                muscle: "Quadríceps / Glúteos",
-                icon: "🦵",
-                sets: 4,
-                defaultReps: "10x",
-                note: "Descer até paralelo",
-                videoUrl: "#",
-            },
-            {
-                id: 12,
-                name: "Leg Press 45°",
-                muscle: "Pernas",
-                icon: "🦵",
-                sets: 4,
-                defaultReps: "12x",
-                note: "",
-                videoUrl: "#",
-            },
-            {
-                id: 13,
-                name: "Cadeira Extensora",
-                muscle: "Quadríceps",
-                icon: "🦵",
-                sets: 3,
-                defaultReps: "15x",
-                note: "Segurar na contração 2s",
-                videoUrl: "#",
-            },
-            {
-                id: 14,
-                name: "Stiff com Barra",
-                muscle: "Posterior / Glúteos",
-                icon: "🦵",
-                sets: 3,
-                defaultReps: "12x",
-                note: "",
-                videoUrl: "#",
-            },
-            {
-                id: 15,
-                name: "Panturrilha em Pé",
-                muscle: "Panturrilha",
-                icon: "🦵",
-                sets: 4,
-                defaultReps: "20x",
-                note: "Amplitude total",
-                videoUrl: "#",
-            },
-        ],
-    },
-    D: {
-        label: "Treino D",
-        focus: "Ombros / Core",
-        exercises: [
-            {
-                id: 16,
-                name: "Desenvolvimento com Halteres Sentado",
-                muscle: "Deltóide",
-                icon: "🔱",
-                sets: 4,
-                defaultReps: "10x",
-                note: "Diminui repetição — aumenta carga",
-                videoUrl: "#",
-            },
-            {
-                id: 17,
-                name: "Elevação Lateral com Halteres",
-                muscle: "Deltóide Lateral",
-                icon: "🔱",
-                sets: 4,
-                defaultReps: "15x",
-                note: "",
-                videoUrl: "#",
-            },
-            {
-                id: 18,
-                name: "Elevação Frontal Alternada",
-                muscle: "Deltóide Anterior",
-                icon: "🔱",
-                sets: 3,
-                defaultReps: "12x",
-                note: "",
-                videoUrl: "#",
-            },
-            {
-                id: 19,
-                name: "Prancha Abdominal",
-                muscle: "Core",
-                icon: "🔥",
-                sets: 3,
-                defaultReps: "45s",
-                note: "Isométrico",
-                videoUrl: "#",
-            },
-            {
-                id: 20,
-                name: "Abdominal Infra na Barra",
-                muscle: "Core Inferior",
-                icon: "🔥",
-                sets: 3,
-                defaultReps: "15x",
-                note: "",
-                videoUrl: "#",
-            },
-        ],
-    },
-};
-
+import { getStudentsDB } from "../../../utils/storage";
 /* ===== ANAMNESE QUESTIONS ===== */
 const anamneseQuestions = [
     { id: "injury", label: "Possui alguma lesão ou dor?", type: "text", placeholder: "Descreva lesões..." },
@@ -246,9 +19,37 @@ const anamneseQuestions = [
 
 export default function ClientPortalPage() {
     const [activeTab, setActiveTab] = useState("workouts"); // "assessment" | "workouts"
-    const [activeDay, setActiveDay] = useState("A");
+    const [activeDay, setActiveDay] = useState(0);
     const [videoModal, setVideoModal] = useState(null);
     const [anamneseData, setAnamneseData] = useState({});
+    
+    // Dynamic E2E State
+    const [student, setStudent] = useState(null);
+    const [workoutPlan, setWorkoutPlan] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const email = localStorage.getItem("fitvision_logged_in_email");
+        if (!email) {
+            setLoading(false);
+            return;
+        }
+
+        const db = getStudentsDB();
+        const foundStudent = Object.values(db).find(
+            (s) => (s.anamnesis?.basics?.email || "").toLowerCase() === email ||
+                   (s.email || "").toLowerCase() === email
+        );
+
+        if (foundStudent) {
+            setStudent(foundStudent);
+            if (foundStudent.workouts && foundStudent.workouts.length > 0) {
+                // Use the most recent workout plan
+                setWorkoutPlan(foundStudent.workouts[foundStudent.workouts.length - 1]);
+            }
+        }
+        setLoading(false);
+    }, []);
 
     // State: { exerciseId: { setIndex: { reps, load, done } } }
     const [setsState, setSetsState] = useState({});
@@ -270,17 +71,28 @@ export default function ClientPortalPage() {
         }));
     };
 
-    const currentDay = workoutDays[activeDay];
+    if (loading) return <div style={{ padding: 40, color: 'white', textAlign: 'center' }}>Carregando seu portal...</div>;
+    
+    if (!student) return <div style={{ padding: 40, color: 'white', textAlign: 'center' }}>Aluno não encontrado. Por favor, volte e faça login com o email cadastrado na sua ficha de anamnese.</div>;
+
+    const currentDay = workoutPlan[activeDay] || null;
 
     // Calculate progress
-    const totalSets = currentDay.exercises.reduce((sum, ex) => sum + ex.sets, 0);
-    const completedSets = currentDay.exercises.reduce((sum, ex) => {
-        let done = 0;
-        for (let i = 0; i < ex.sets; i++) {
-            if (getSetsData(ex.id, i).done) done++;
-        }
-        return sum + done;
-    }, 0);
+    let totalSets = 0;
+    let completedSets = 0;
+    
+    if (currentDay) {
+        totalSets = currentDay.exercises.reduce((sum, ex) => sum + (ex.setsArray ? ex.setsArray.length : 1), 0);
+        completedSets = currentDay.exercises.reduce((sum, ex) => {
+            let done = 0;
+            const setLength = ex.setsArray ? ex.setsArray.length : 1;
+            for (let i = 0; i < setLength; i++) {
+                if (getSetsData(ex.id, i).done) done++;
+            }
+            return sum + done;
+        }, 0);
+    }
+    
     const progressPercent = totalSets > 0 ? Math.round((completedSets / totalSets) * 100) : 0;
 
     return (
@@ -295,8 +107,10 @@ export default function ClientPortalPage() {
                     </span>
                 </Link>
                 <div className={styles.clientTopUser}>
-                    <span>Rafael Mendes</span>
-                    <div className={styles.clientTopAvatar}>RM</div>
+                    <span>{student.name}</span>
+                    <div className={styles.clientTopAvatar}>
+                        {student.name.substring(0,2).toUpperCase()}
+                    </div>
                 </div>
             </div>
 
@@ -418,29 +232,38 @@ export default function ClientPortalPage() {
                         </div>
 
                         {/* Day Tabs */}
-                        <div className={styles.dayTabs}>
-                            {Object.entries(workoutDays).map(([key, day]) => (
-                                <button
-                                    key={key}
-                                    className={`${styles.dayTab} ${activeDay === key ? styles.dayTabActive : ""}`}
-                                    onClick={() => setActiveDay(key)}
-                                >
-                                    <span>Treino {key}</span>
-                                    <span className={styles.dayTabLabel}>{day.focus}</span>
-                                </button>
-                            ))}
-                        </div>
+                        {workoutPlan.length > 0 ? (
+                            <div className={styles.dayTabs}>
+                                {workoutPlan.map((day, index) => (
+                                    <button
+                                        key={index}
+                                        className={`${styles.dayTab} ${activeDay === index ? styles.dayTabActive : ""}`}
+                                        onClick={() => setActiveDay(index)}
+                                    >
+                                        <span>Treino {day.letter}</span>
+                                        <span className={styles.dayTabLabel}>{day.title}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        ) : (
+                            <div style={{ textAlign: "center", padding: "40px 20px", background: "var(--card-bg)", borderRadius: 16 }}>
+                                <h3>Você ainda não possui nenhum treino montado!</h3>
+                                <p style={{ color: "var(--text-secondary)", marginTop: 8 }}>Aguarde seu treinador gerar o seu treino ou preencha a sua Ficha de Anamnese caso ainda não tenha feito.</p>
+                            </div>
+                        )}
 
                         {/* Exercise Cards */}
-                        {currentDay.exercises.map((exercise) => (
+                        {currentDay && currentDay.exercises.map((exercise) => {
+                            const setLength = exercise.setsArray ? exercise.setsArray.length : 1;
+                            return (
                             <div key={exercise.id} className={styles.exerciseCard}>
                                 {/* Header */}
                                 <div className={styles.exerciseCardHeader}>
                                     <div className={styles.exerciseHeaderLeft}>
-                                        <div className={styles.exerciseCardIcon}>{exercise.icon}</div>
+                                        <div className={styles.exerciseCardIcon}>🏋️</div>
                                         <div>
                                             <div className={styles.exerciseCardName}>{exercise.name}</div>
-                                            <div className={styles.exerciseCardMuscle}>{exercise.muscle}</div>
+                                            <div className={styles.exerciseCardMuscle}>{exercise.muscle || "Diversos"}</div>
                                         </div>
                                     </div>
                                     <button
@@ -463,7 +286,8 @@ export default function ClientPortalPage() {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {Array.from({ length: exercise.sets }, (_, i) => {
+                                        {Array.from({ length: setLength }, (_, i) => {
+                                            const defaultRep = exercise.setsArray ? exercise.setsArray[i]?.reps : "-";
                                             const setData = getSetsData(exercise.id, i);
                                             return (
                                                 <tr
@@ -476,7 +300,7 @@ export default function ClientPortalPage() {
                                                     <td>
                                                         <input
                                                             className={styles.setInput}
-                                                            placeholder={exercise.defaultReps}
+                                                            placeholder={`${defaultRep}x`}
                                                             value={setData.reps}
                                                             onChange={(e) =>
                                                                 updateSet(exercise.id, i, "reps", e.target.value)
@@ -512,14 +336,17 @@ export default function ClientPortalPage() {
                                 </table>
 
                                 {/* Note */}
-                                {exercise.note && (
-                                    <div className={styles.exerciseNote}>
-                                        <span className={styles.exerciseNoteIcon}>📝</span>
-                                        {exercise.note}
+                                {exercise.professionalObservation && (
+                                    <div className={styles.exerciseNote} style={{ borderLeft: "3px solid var(--primary)" }}>
+                                        <span className={styles.exerciseNoteIcon}>👨‍🏫</span>
+                                        <div style={{ flex: 1 }}>
+                                            <strong style={{ display: 'block', fontSize: '11px', textTransform: 'uppercase', marginBottom: 2 }}>Observação do Professor</strong>
+                                            {exercise.professionalObservation}
+                                        </div>
                                     </div>
                                 )}
                             </div>
-                        ))}
+                        )})}
                     </>
                 )}
             </div>

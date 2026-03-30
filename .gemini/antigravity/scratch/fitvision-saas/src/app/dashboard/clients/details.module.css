@@ -74,9 +74,10 @@
 }
 
 .actionGrid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 16px;
     margin-top: 24px;
 }
 
@@ -86,6 +87,9 @@
     align-items: center;
     gap: 6px;
     text-align: center;
+    flex: 1;
+    min-width: 72px;
+    max-width: 90px;
 }
 
 .actionIcon {

@@ -1,122 +1,66 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import styles from "./clients.module.css";
-import dashStyles from "../dashboard.module.css";
-
-const initialClients = [
-    {
-        id: 1,
-        name: "Rafael Mendes",
-        email: "rafael@email.com",
-        initials: "RM",
-        color: "var(--gradient-primary)",
-        phone: "(11) 99999-0001",
-        goal: "Hipertrofia",
-        age: 28,
-        status: "active",
-        workoutExpiry: "12 dias",
-        assessments: 3,
-    },
-    {
-        id: 2,
-        name: "Carla Silva",
-        email: "carla@email.com",
-        initials: "CS",
-        color: "var(--gradient-accent)",
-        phone: "(11) 99999-0002",
-        goal: "Emagrecimento",
-        age: 34,
-        status: "warning",
-        workoutExpiry: "3 dias",
-        assessments: 2,
-    },
-    {
-        id: 3,
-        name: "João Pedro",
-        email: "joao@email.com",
-        initials: "JP",
-        color: "var(--gradient-primary)",
-        phone: "(11) 99999-0003",
-        goal: "Condicionamento",
-        age: 22,
-        status: "active",
-        workoutExpiry: "20 dias",
-        assessments: 1,
-    },
-    {
-        id: 4,
-        name: "Ana Costa",
-        email: "ana@email.com",
-        initials: "AC",
-        color: "var(--gradient-accent)",
-        phone: "(11) 99999-0004",
-        goal: "Reabilitação",
-        age: 45,
-        status: "expired",
-        workoutExpiry: "Expirado",
-        assessments: 4,
-    },
-    {
-        id: 5,
-        name: "Lucas Oliveira",
-        email: "lucas@email.com",
-        initials: "LO",
-        color: "var(--gradient-primary)",
-        phone: "(11) 99999-0005",
-        goal: "Hipertrofia",
-        age: 31,
-        status: "active",
-        workoutExpiry: "18 dias",
-        assessments: 2,
-    },
-    {
-        id: 6,
-        name: "Marina Santos",
-        email: "marina@email.com",
-        initials: "MS",
-        color: "var(--gradient-accent)",
-        phone: "(11) 99999-0006",
-        goal: "Definição",
-        age: 27,
-        status: "active",
-        workoutExpiry: "25 dias",
-        assessments: 1,
-    },
-];
+import { getStudentsDB, createProspect } from "../../../utils/storage";
 
 export default function ClientsPage() {
     const [showModal, setShowModal] = useState(false);
-    const [clients, setClients] = useState(initialClients);
+    const [clients, setClients] = useState([]);
     const [form, setForm] = useState({ name: "", email: "", phone: "", goal: "Hipertrofia", age: "" });
     const [registrationLink, setRegistrationLink] = useState(null);
     const [justCreatedName, setJustCreatedName] = useState("");
+    const [loading, setLoading] = useState(false);
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        const newId = Date.now();
-        const initials = form.name
-            .split(" ")
-            .slice(0, 2)
-            .map((w) => w[0])
-            .join("")
-            .toUpperCase();
+    const loadClients = async () => {
+        const db = await getStudentsDB();
+        const clientsArray = Object.values(db).map((c, index) => {
+            const nameParts = (c.name || "Aluno").split(" ");
+            let initials = nameParts[0][0] || "";
+            if (nameParts.length > 1) initials += nameParts[1][0];
 
-        const newClient = {
-            id: newId,
-            name: form.name,
-            initials,
-            color: clients.length % 2 === 0 ? "var(--gradient-primary)" : "var(--gradient-accent)",
-            status: "prospect",
-            workoutExpiry: "-",
-            assessments: 0,
+            return {
+                id: c.id,
+                name: c.name,
+                email: c.anamnesis?.basics?.email || c.email || "",
+                initials: initials.toUpperCase(),
+                color: index % 2 === 0 ? "var(--gradient-primary)" : "var(--gradient-accent)",
+                phone: c.anamnesis?.basics?.phone || c.phone || "",
+                goal: c.anamnesis?.basics?.goal || c.goal || "-",
+                status: c.status?.toLowerCase() || "prospect",
+                workoutExpiry: c.workouts?.length ? "Ativo" : "-",
+                assessments: c.anamnesis ? 1 : 0
+            };
+        });
+        setClients(clientsArray.reverse());
+    };
+
+    useEffect(() => {
+        loadClients();
+        window.addEventListener("fitvision_storage_update", loadClients);
+        window.addEventListener("storage", loadClients);
+        return () => {
+            window.removeEventListener("fitvision_storage_update", loadClients);
+            window.removeEventListener("storage", loadClients);
         };
+    }, []);
 
-        setClients([newClient, ...clients]);
-        setJustCreatedName(form.name);
-        setRegistrationLink(`http://localhost:3000/onboarding/${newId}`);
-        setForm({ name: "", email: "", phone: "", goal: "Hipertrofia", age: "" });
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        try {
+            const newStudent = await createProspect(form.name, form.email, form.phone, form.goal);
+            setJustCreatedName(form.name);
+            setRegistrationLink(newStudent.onboardingLink);
+            setForm({ name: "", email: "", phone: "", goal: "Hipertrofia", age: "" });
+            await loadClients();
+        } catch (err) {
+            console.error("Erro ao criar aluno:", err);
+            alert("Erro ao cadastrar aluno: " + err.message);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const closeAndReset = () => {
@@ -144,23 +88,26 @@ export default function ClientsPage() {
             </div>
 
             <div className={styles.clientsGrid}>
+                {clients.length === 0 && (
+                    <div style={{ padding: "40px", textAlign: "center", color: "var(--text-muted)", gridColumn: "1 / -1" }}>
+                        Nenhum aluno cadastrado ainda.
+                    </div>
+                )}
                 {clients.map((client) => (
                     <Link
                         key={client.id}
                         href={`/dashboard/clients/${client.id}`}
                         className={styles.clientCard}
                     >
-                        <div className={styles.clientAvatar}>
-                            👤
-                        </div>
+                        <div className={styles.clientAvatar}>👤</div>
                         <div className={styles.clientInfo}>
-                            <div className={`${styles.statusIndicator} ${client.status === 'expired' ? styles.statusBlocked : styles.statusActive}`}>
+                            <div className={`${styles.statusIndicator} ${client.status === "expired" ? styles.statusBlocked : styles.statusActive}`}>
                                 <span className={styles.statusDot}></span>
-                                {client.status === 'expired' ? 'Bloqueado' : 'Ativo'}
+                                {client.status === "expired" ? "Bloqueado" : "Ativo"}
                             </div>
                             <div className={styles.clientName}>{client.name}</div>
                         </div>
-                        <div style={{ color: 'var(--primary)', fontSize: '1.2rem' }}>›</div>
+                        <div style={{ color: "var(--primary)", fontSize: "1.2rem" }}>›</div>
                     </Link>
                 ))}
             </div>
@@ -169,7 +116,6 @@ export default function ClientsPage() {
                 O <span className={styles.summaryHighlight}>total de alunos</span> é a soma de alunos ativos, bloqueados e prospects.
             </div>
 
-            {/* New Client Modal */}
             {showModal && (
                 <div className={styles.modalOverlay} onClick={closeAndReset}>
                     <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
@@ -177,12 +123,7 @@ export default function ClientsPage() {
                             <h3 className={styles.modalTitle}>
                                 {registrationLink ? "Link Gerado!" : "Novo Aluno"}
                             </h3>
-                            <button
-                                className={styles.modalClose}
-                                onClick={closeAndReset}
-                            >
-                                ✕
-                            </button>
+                            <button className={styles.modalClose} onClick={closeAndReset}>✕</button>
                         </div>
 
                         {registrationLink ? (
@@ -195,7 +136,6 @@ export default function ClientsPage() {
                                     <p className={styles.successSubtext}>
                                         Compartilhe o link abaixo para que o aluno complete as informações cadastrais e anamnese.
                                     </p>
-
                                     <div className={styles.linkCopyBox}>
                                         <input
                                             readOnly
@@ -209,11 +149,10 @@ export default function ClientsPage() {
                                             Copiar
                                         </button>
                                     </div>
-
                                     <button
                                         className="btn btn-primary"
-                                        style={{ width: '100%', marginTop: '20px' }}
-                                        onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(`Olá ${justCreatedName}! Para começarmos seus treinos, por favor preencha sua ficha cadastral no link: ${registrationLink}`)}`, '_blank')}
+                                        style={{ width: "100%", marginTop: "20px" }}
+                                        onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(`Olá ${justCreatedName}! Para começarmos seus treinos, por favor preencha sua ficha cadastral no link: ${registrationLink}`)}`, "_blank")}
                                     >
                                         Enviar via WhatsApp 💬
                                     </button>
@@ -228,9 +167,7 @@ export default function ClientsPage() {
                                             className={styles.formInput}
                                             placeholder="Ex: João Silva"
                                             value={form.name}
-                                            onChange={(e) =>
-                                                setForm({ ...form, name: e.target.value })
-                                            }
+                                            onChange={(e) => setForm({ ...form, name: e.target.value })}
                                             required
                                             autoFocus
                                         />
@@ -240,15 +177,11 @@ export default function ClientsPage() {
                                     </p>
                                 </div>
                                 <div className={styles.modalFooter}>
-                                    <button
-                                        type="button"
-                                        className="btn btn-outline"
-                                        onClick={closeAndReset}
-                                    >
+                                    <button type="button" className="btn btn-outline" onClick={closeAndReset}>
                                         Cancelar
                                     </button>
-                                    <button type="submit" className="btn btn-primary">
-                                        Gerar Link de Cadastro
+                                    <button type="submit" className="btn btn-primary" disabled={loading}>
+                                        {loading ? "Cadastrando..." : "Gerar Link de Cadastro"}
                                     </button>
                                 </div>
                             </form>

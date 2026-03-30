@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import Link from "next/link";
 import styles from "../clients/clients.module.css";
+import { getStudentsDB } from "../../../utils/storage";
 
 const anamneseQuestions = [
     { id: "injury", label: "Possui alguma lesão ou dor articular?", type: "text", placeholder: "Descreva lesões, dores ou limitações..." },
@@ -14,35 +16,7 @@ const anamneseQuestions = [
     { id: "goals", label: "Objetivos específicos", type: "textarea", placeholder: "Descreva detalhadamente seus objetivos..." },
 ];
 
-const mockAssessments = [
-    {
-        id: 1,
-        clientName: "Rafael Mendes",
-        initials: "RM",
-        date: "08/03/2026",
-        status: "completed",
-        goal: "Hipertrofia",
-        photos: 4,
-    },
-    {
-        id: 2,
-        clientName: "Carla Silva",
-        initials: "CS",
-        date: "05/03/2026",
-        status: "completed",
-        goal: "Emagrecimento",
-        photos: 4,
-    },
-    {
-        id: 3,
-        clientName: "João Pedro",
-        initials: "JP",
-        date: "01/03/2026",
-        status: "pending",
-        goal: "Condicionamento",
-        photos: 0,
-    },
-];
+// Replaced mock data with live fetching
 
 export default function AssessmentsPage() {
     const [showModal, setShowModal] = useState(false);
@@ -54,6 +28,32 @@ export default function AssessmentsPage() {
     const updateField = (key, value) => {
         setFormData({ ...formData, [key]: value });
     };
+
+    const [dbStudents, setDbStudents] = useState([]);
+
+    useEffect(() => {
+        const load = () => {
+            const db = getStudentsDB();
+            setDbStudents(Object.values(db));
+        };
+        load();
+        window.addEventListener("fitvision_storage_update", load);
+        window.addEventListener("storage", load);
+        return () => {
+            window.removeEventListener("fitvision_storage_update", load);
+            window.removeEventListener("storage", load);
+        };
+    }, []);
+
+    const activeAssessments = dbStudents.map(student => ({
+        id: student.id,
+        clientName: student.name,
+        initials: student.name.split(' ').map(n => n[0]).join('').substring(0, 2),
+        date: student.createdAt || new Date().toLocaleDateString('pt-BR'),
+        status: student.anamnesis ? "completed" : "pending",
+        goal: student.anamnesis?.basics?.goal || "Pendente",
+        photos: student.anamnesis?.photos ? Object.values(student.anamnesis.photos).filter(Boolean).length : 0
+    }));
 
     return (
         <>
@@ -77,7 +77,12 @@ export default function AssessmentsPage() {
 
             {/* Assessment List */}
             <div className={styles.clientsGrid}>
-                {mockAssessments.map((item) => (
+                {activeAssessments.length === 0 && (
+                    <div style={{ padding: '40px', textAlign: 'center', background: '#fff', borderRadius: '12px', border: '1px solid #eee', gridColumn: '1 / -1' }}>
+                        Nenhum aluno cadastrado.
+                    </div>
+                )}
+                {activeAssessments.map((item) => (
                     <div key={item.id} className="card" style={{ padding: "20px" }}>
                         <div className={styles.clientCardTop}>
                             <div
@@ -116,9 +121,11 @@ export default function AssessmentsPage() {
                             </div>
                         </div>
                         <div className={styles.clientCardActions} style={{ marginTop: 14 }}>
-                            <button className="btn btn-outline btn-sm" style={{ flex: 1 }}>
-                                📄 Ver Detalhes
-                            </button>
+                            <Link href={`/dashboard/clients/${item.id}`} style={{ width: '100%', textDecoration: 'none' }}>
+                                <button className="btn btn-outline btn-sm" style={{ width: '100%' }}>
+                                    📄 Ver Detalhes
+                                </button>
+                            </Link>
                         </div>
                     </div>
                 ))}
