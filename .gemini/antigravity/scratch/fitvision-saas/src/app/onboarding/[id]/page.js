@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useParams } from "next/navigation";
 import styles from "../onboarding.module.css";
 import { getStudent, saveStudent } from "../../../utils/storage";
@@ -8,16 +8,19 @@ import { getStudent, saveStudent } from "../../../utils/storage";
 export default function OnboardingPage() {
     const params = useParams();
     const studentId = params.id;
-    
+
     const [student, setStudent] = useState({ name: "Carregando..." });
 
     useEffect(() => {
-        const data = getStudent(studentId);
-        if (data) {
-            setStudent(data);
-        } else {
-            setStudent({ name: "Aluno" });
-        }
+        const load = async () => {
+            const data = await getStudent(studentId);
+            if (data) {
+                setStudent(data);
+            } else {
+                setStudent({ name: "Aluno" });
+            }
+        };
+        load();
     }, [studentId]);
 
     const [submitted, setSubmitted] = useState(false);
@@ -46,6 +49,7 @@ export default function OnboardingPage() {
         surgeryTime: "",
         muscleDifficulty: "",
         trainingDays: "3",
+        trainingHours: "1h",
         cardioFrequency: "0",
         alcohol: "Não",
         smoke: "Não",
@@ -70,7 +74,6 @@ export default function OnboardingPage() {
     };
 
     const handleFileChange = (side, e) => {
-        console.log(`Alteração de arquivo detectada para: ${side}`);
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
             const reader = new FileReader();
@@ -93,7 +96,6 @@ export default function OnboardingPage() {
                     const ctx = canvas.getContext("2d");
                     ctx.drawImage(img, 0, 0, width, height);
                     const resizedUrl = canvas.toDataURL("image/jpeg", 0.7);
-
                     setForm(prev => ({
                         ...prev,
                         photos: { ...prev.photos, [side]: resizedUrl }
@@ -106,7 +108,6 @@ export default function OnboardingPage() {
     };
 
     const startCamera = (side) => {
-        console.log(`Iniciando câmera para: ${side}`);
         setCurrentPhotoSide(side);
         setCameraActive(true);
         navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
@@ -142,24 +143,20 @@ export default function OnboardingPage() {
             width = Math.round((width * MAX_SIZE) / height);
             height = MAX_SIZE;
         }
-
         canvas.width = width;
         canvas.height = height;
         const ctx = canvas.getContext("2d");
         ctx.drawImage(video, 0, 0, width, height);
-
         const imageData = canvas.toDataURL("image/jpeg", 0.7);
         setForm(prev => ({
             ...prev,
             photos: { ...prev.photos, [currentPhotoSide]: imageData }
         }));
-
         stopCamera();
     };
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        
         if (student.id) {
             const updatedStudent = {
                 ...student,
@@ -180,6 +177,7 @@ export default function OnboardingPage() {
                     surgeryTime: form.surgeryTime,
                     lifestyle: {
                         trainingDays: form.trainingDays,
+                        trainingHours: form.trainingHours,
                         muscleDifficulty: form.muscleDifficulty,
                         cardioFrequency: form.cardioFrequency,
                         alcohol: form.alcohol,
@@ -191,7 +189,6 @@ export default function OnboardingPage() {
             };
             saveStudent(studentId, updatedStudent);
         }
-
         setSubmitted(true);
     };
 
@@ -201,7 +198,7 @@ export default function OnboardingPage() {
                 <div className={styles.onboardingCard}>
                     <div className={styles.successView}>
                         <div className={styles.successIcon}>🎉</div>
-                        <h2 className={styles.successTitle}>Tudo pronto, {student.name.split(' ')[0]}!</h2>
+                        <h2 className={styles.successTitle}>Tudo pronto, {student.name ? student.name.split(' ')[0] : ''}!</h2>
                         <p className={styles.successText}>
                             Suas informações foram enviadas com sucesso ao seu treinador.
                             Logo ele entrará em contato para dar início aos seus treinos!
@@ -228,7 +225,7 @@ export default function OnboardingPage() {
                 </div>
 
                 <form className={styles.formBody} onSubmit={handleSubmit}>
-                    <h2 className={styles.sectionTitle}>📍 Informações Básicas</h2>
+                    <h2 className={styles.sectionTitle}>🔍 Informações Básicas</h2>
 
                     <div className={styles.formGroup}>
                         <label className={styles.label}>E-mail</label>
@@ -329,7 +326,6 @@ export default function OnboardingPage() {
                                 </button>
                             ))}
                         </div>
-
                         {form.injuries.includes("Outros") && (
                             <div className={styles.othersField}>
                                 <label className={styles.label}>Descreva outras dores ou lesões:</label>
@@ -412,6 +408,21 @@ export default function OnboardingPage() {
                     </div>
 
                     <div className={styles.formGroup}>
+                        <label className={styles.label}>Qual a disponibilidade em horas diárias você tem incluído o cárdio?</label>
+                        <div className={styles.radioGroup}>
+                            {["1h", "1h30", "2h", "2h30", "3h+"].map(h => (
+                                <div
+                                    key={h}
+                                    className={`${styles.radioOption} ${form.trainingHours === h ? styles.radioOptionActive : ""}`}
+                                    onClick={() => setForm({ ...form, trainingHours: h })}
+                                >
+                                    {h}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className={styles.formGroup}>
                         <label className={styles.label}>Quantas vezes por semana você faz cardio?</label>
                         <select
                             className={styles.select}
@@ -427,7 +438,7 @@ export default function OnboardingPage() {
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                         <div className={styles.formGroup}>
-                            <label className={styles.label}>Consome álcool?</label>
+                            <label className={styles.label}>Consome Álcool?</label>
                             <select
                                 className={styles.select}
                                 value={form.alcohol}
@@ -487,7 +498,6 @@ export default function OnboardingPage() {
                                                 type="button"
                                                 className={styles.actionBtn}
                                                 onClick={() => {
-                                                    console.log(`Trocar clicado para: ${slot.id}`);
                                                     setForm(prev => ({
                                                         ...prev,
                                                         photos: { ...prev.photos, [slot.id]: null }
@@ -505,15 +515,11 @@ export default function OnboardingPage() {
                                     <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
                                         <div className={styles.photoIcon}>{slot.icon}</div>
                                         <div className={styles.photoLabel}>{slot.label}</div>
-
                                         <div className={styles.slotButtonContainer}>
                                             <button
                                                 type="button"
                                                 className={`${styles.slotBtn} ${styles.cameraBtn}`}
-                                                onClick={() => {
-                                                    console.log(`Botão Câmera clicado para: ${slot.id}`);
-                                                    startCamera(slot.id);
-                                                }}
+                                                onClick={() => startCamera(slot.id)}
                                             >
                                                 📸 Câmera
                                             </button>
@@ -521,11 +527,8 @@ export default function OnboardingPage() {
                                                 type="button"
                                                 className={`${styles.slotBtn} ${styles.galleryBtn}`}
                                                 onClick={() => {
-                                                    console.log(`Botão Galeria clicado para: ${slot.id}`);
                                                     if (fileInputRefs[slot.id].current) {
                                                         fileInputRefs[slot.id].current.click();
-                                                    } else {
-                                                        console.error(`Ref para ${slot.id} não encontrada!`);
                                                     }
                                                 }}
                                             >
@@ -552,7 +555,6 @@ export default function OnboardingPage() {
                 </form>
             </div>
 
-            {/* Camera Capture Modal */}
             {cameraActive && (
                 <div className={styles.modalOverlay}>
                     <div className={styles.cameraContainer}>

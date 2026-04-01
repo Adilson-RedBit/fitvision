@@ -16,13 +16,10 @@ const anamneseQuestions = [
     { id: "goals", label: "Objetivos específicos", type: "textarea", placeholder: "Descreva detalhadamente seus objetivos..." },
 ];
 
-// Replaced mock data with live fetching
-
 export default function AssessmentsPage() {
     const [showModal, setShowModal] = useState(false);
     const [step, setStep] = useState(1);
     const [formData, setFormData] = useState({});
-
     const totalSteps = 3;
 
     const updateField = (key, value) => {
@@ -32,8 +29,8 @@ export default function AssessmentsPage() {
     const [dbStudents, setDbStudents] = useState([]);
 
     useEffect(() => {
-        const load = () => {
-            const db = getStudentsDB();
+        const load = async () => {
+            const db = await getStudentsDB();
             setDbStudents(Object.values(db));
         };
         load();
@@ -71,81 +68,69 @@ export default function AssessmentsPage() {
                         setStep(1);
                     }}
                 >
-                    ➕ Nova Avaliação
+                    + Nova Avaliação
                 </button>
             </div>
 
             {/* Assessment List */}
             <div className={styles.clientsGrid}>
-                {activeAssessments.length === 0 && (
-                    <div style={{ padding: '40px', textAlign: 'center', background: '#fff', borderRadius: '12px', border: '1px solid #eee', gridColumn: '1 / -1' }}>
+                {activeAssessments.length === 0 ? (
+                    <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '40px', color: '#888' }}>
                         Nenhum aluno cadastrado.
                     </div>
+                ) : (
+                    activeAssessments.map((assessment) => (
+                        <Link
+                            key={assessment.id}
+                            href={`/dashboard/clients/${assessment.id}`}
+                            className={styles.clientCard}
+                            style={{ textDecoration: 'none' }}
+                        >
+                            <div className={styles.clientCardHeader}>
+                                <div className={styles.clientAvatar}>
+                                    {assessment.initials}
+                                </div>
+                                <div className={styles.clientInfo}>
+                                    <div className={styles.clientName}>{assessment.clientName}</div>
+                                    <div className={styles.clientMeta}>{assessment.date}</div>
+                                </div>
+                                <span
+                                    className={styles.statusBadge}
+                                    style={{
+                                        background: assessment.status === 'completed' ? '#e8f5e9' : '#fff3e0',
+                                        color: assessment.status === 'completed' ? '#2e7d32' : '#e65100',
+                                    }}
+                                >
+                                    {assessment.status === 'completed' ? '✅ Completa' : '⏳ Pendente'}
+                                </span>
+                            </div>
+                            <div className={styles.clientCardBody}>
+                                <div className={styles.clientStat}>
+                                    <span className={styles.clientStatLabel}>Objetivo</span>
+                                    <span className={styles.clientStatValue}>{assessment.goal}</span>
+                                </div>
+                                <div className={styles.clientStat}>
+                                    <span className={styles.clientStatLabel}>Fotos</span>
+                                    <span className={styles.clientStatValue}>{assessment.photos}/4</span>
+                                </div>
+                            </div>
+                        </Link>
+                    ))
                 )}
-                {activeAssessments.map((item) => (
-                    <div key={item.id} className="card" style={{ padding: "20px" }}>
-                        <div className={styles.clientCardTop}>
-                            <div
-                                className={styles.clientCardAvatar}
-                                style={{
-                                    background:
-                                        item.id % 2 === 0
-                                            ? "var(--gradient-accent)"
-                                            : "var(--gradient-primary)",
-                                }}
-                            >
-                                {item.initials}
-                            </div>
-                            <div>
-                                <div className={styles.clientCardName}>{item.clientName}</div>
-                                <div className={styles.clientCardEmail}>{item.date}</div>
-                            </div>
-                            <span
-                                className={`badge ${item.status === "completed"
-                                        ? "badge-success"
-                                        : "badge-warning"
-                                    }`}
-                                style={{ marginLeft: "auto" }}
-                            >
-                                {item.status === "completed" ? "Completa" : "Pendente"}
-                            </span>
-                        </div>
-                        <div className={styles.clientCardMeta}>
-                            <div className={styles.metaItem}>
-                                <div className={styles.metaLabel}>Objetivo</div>
-                                <div className={styles.metaValue}>{item.goal}</div>
-                            </div>
-                            <div className={styles.metaItem}>
-                                <div className={styles.metaLabel}>Fotos</div>
-                                <div className={styles.metaValue}>{item.photos}/4</div>
-                            </div>
-                        </div>
-                        <div className={styles.clientCardActions} style={{ marginTop: 14 }}>
-                            <Link href={`/dashboard/clients/${item.id}`} style={{ width: '100%', textDecoration: 'none' }}>
-                                <button className="btn btn-outline btn-sm" style={{ width: '100%' }}>
-                                    📄 Ver Detalhes
-                                </button>
-                            </Link>
-                        </div>
-                    </div>
-                ))}
             </div>
 
-            {/* Multi-Step Assessment Modal */}
+            {/* Modal Nova Avaliação */}
             {showModal && (
                 <div
                     className={styles.modalOverlay}
                     onClick={() => setShowModal(false)}
                 >
                     <div
-                        className={styles.modal}
-                        style={{ maxWidth: 600 }}
+                        className={styles.modalContent}
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className={styles.modalHeader}>
-                            <h3 className={styles.modalTitle}>
-                                Nova Avaliação — Etapa {step}/{totalSteps}
-                            </h3>
+                            <h3 className={styles.modalTitle}>Nova Avaliação — Etapa {step}/{totalSteps}</h3>
                             <button
                                 className={styles.modalClose}
                                 onClick={() => setShowModal(false)}
@@ -154,14 +139,8 @@ export default function AssessmentsPage() {
                             </button>
                         </div>
 
-                        {/* Step Progress */}
-                        <div
-                            style={{
-                                display: "flex",
-                                gap: 4,
-                                padding: "12px 24px 0",
-                            }}
-                        >
+                        {/* Progress bar */}
+                        <div style={{ display: "flex", gap: 4, padding: "12px 24px 0" }}>
                             {[1, 2, 3].map((s) => (
                                 <div
                                     key={s}
@@ -169,10 +148,7 @@ export default function AssessmentsPage() {
                                         flex: 1,
                                         height: 4,
                                         borderRadius: 2,
-                                        background:
-                                            s <= step
-                                                ? "var(--primary)"
-                                                : "rgba(108, 92, 231, 0.15)",
+                                        background: s <= step ? "var(--primary)" : "rgba(108, 92, 231, 0.15)",
                                         transition: "background 0.3s ease",
                                     }}
                                 />
@@ -180,30 +156,29 @@ export default function AssessmentsPage() {
                         </div>
 
                         <div className={styles.modalBody}>
-                            {/* Step 1: Select Client */}
+                            {/* Step 1: Selecionar Aluno */}
                             {step === 1 && (
                                 <div>
-                                    <h4
-                                        style={{
-                                            fontSize: "1rem",
-                                            fontWeight: 700,
-                                            marginBottom: 16,
-                                        }}
-                                    >
+                                    <h4 style={{ fontSize: "1rem", fontWeight: 700, marginBottom: 16 }}>
                                         1️⃣ Selecionar Aluno
                                     </h4>
                                     <div className={styles.formGroup}>
                                         <label className={styles.formLabel}>Aluno</label>
                                         <select
                                             className={styles.formSelect}
-                                            value={formData.clientName || ""}
-                                            onChange={(e) => updateField("clientName", e.target.value)}
+                                            value={formData.clientId || ""}
+                                            onChange={(e) => {
+                                                const selected = dbStudents.find(s => s.id === e.target.value);
+                                                updateField("clientId", e.target.value);
+                                                updateField("clientName", selected?.name || "");
+                                            }}
                                         >
                                             <option value="">Selecione um aluno</option>
-                                            <option>Rafael Mendes</option>
-                                            <option>Carla Silva</option>
-                                            <option>João Pedro</option>
-                                            <option>Ana Costa</option>
+                                            {dbStudents.map(student => (
+                                                <option key={student.id} value={student.id}>
+                                                    {student.name}
+                                                </option>
+                                            ))}
                                         </select>
                                     </div>
                                     <div className={styles.formGroup}>
@@ -224,78 +199,31 @@ export default function AssessmentsPage() {
                                 </div>
                             )}
 
-                            {/* Step 2: Photo Upload */}
+                            {/* Step 2: Fotos */}
                             {step === 2 && (
                                 <div>
-                                    <h4
-                                        style={{
-                                            fontSize: "1rem",
-                                            fontWeight: 700,
-                                            marginBottom: 16,
-                                        }}
-                                    >
-                                        📷 Upload de Fotos (4 ângulos)
+                                    <h4 style={{ fontSize: "1rem", fontWeight: 700, marginBottom: 16 }}>
+                                        2️⃣ Fotos de Avaliação
                                     </h4>
-                                    <div
-                                        style={{
-                                            display: "grid",
-                                            gridTemplateColumns: "1fr 1fr",
-                                            gap: 12,
-                                        }}
-                                    >
-                                        {["Frontal", "Lateral Esquerda", "Lateral Direita", "Costas"].map(
-                                            (angle) => (
-                                                <div
-                                                    key={angle}
-                                                    style={{
-                                                        border: "2px dashed var(--border-strong)",
-                                                        borderRadius: "var(--radius-md)",
-                                                        padding: 24,
-                                                        textAlign: "center",
-                                                        cursor: "pointer",
-                                                        transition: "all 0.2s ease",
-                                                        background: "var(--bg-surface)",
-                                                    }}
-                                                >
-                                                    <div style={{ fontSize: "2rem", marginBottom: 8 }}>
-                                                        📷
-                                                    </div>
-                                                    <div
-                                                        style={{
-                                                            fontSize: "0.8rem",
-                                                            fontWeight: 600,
-                                                            color: "var(--text-secondary)",
-                                                        }}
-                                                    >
-                                                        {angle}
-                                                    </div>
-                                                    <div
-                                                        style={{
-                                                            fontSize: "0.7rem",
-                                                            color: "var(--text-muted)",
-                                                            marginTop: 4,
-                                                        }}
-                                                    >
-                                                        Clique para enviar
-                                                    </div>
-                                                </div>
-                                            )
-                                        )}
-                                    </div>
+                                    <p style={{ fontSize: '0.85rem', color: '#888', marginBottom: 16 }}>
+                                        As fotos são enviadas pelo aluno através do link de onboarding.
+                                    </p>
+                                    {formData.clientId && (
+                                        <Link
+                                            href={`/dashboard/clients/${formData.clientId}`}
+                                            style={{ color: 'var(--primary)', fontSize: '0.9rem', fontWeight: 600 }}
+                                        >
+                                            Ver perfil completo do aluno →
+                                        </Link>
+                                    )}
                                 </div>
                             )}
 
-                            {/* Step 3: Anamnesis */}
+                            {/* Step 3: Anamnese */}
                             {step === 3 && (
                                 <div>
-                                    <h4
-                                        style={{
-                                            fontSize: "1rem",
-                                            fontWeight: 700,
-                                            marginBottom: 16,
-                                        }}
-                                    >
-                                        📋 Anamnese
+                                    <h4 style={{ fontSize: "1rem", fontWeight: 700, marginBottom: 16 }}>
+                                        3️⃣ Anamnese
                                     </h4>
                                     {anamneseQuestions.map((q) => (
                                         <div key={q.id} className={styles.formGroup}>
@@ -362,7 +290,7 @@ export default function AssessmentsPage() {
                                         setFormData({});
                                     }}
                                 >
-                                    ✓ Finalizar Avaliação
+                                    ✅ Finalizar Avaliação
                                 </button>
                             )}
                         </div>

@@ -7,6 +7,45 @@ import styles from "../details.module.css";
 import WorkoutBuilderModal from "../../components/WorkoutBuilderModal";
 import { getStudent, saveStudent, deleteStudent } from "../../../../utils/storage";
 
+function ExpiryModal({ expiryInfo, expiryMessage, setExpiryMessage, sendExpiryWhatsApp, onClose }) {
+    return (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }} onClick={onClose}>
+            <div style={{ background: 'white', padding: '24px', borderRadius: '16px', width: '440px', maxWidth: '94%' }} onClick={e => e.stopPropagation()}>
+                <h3 style={{ marginBottom: '8px', fontWeight: 800, fontSize: '1.1rem' }}>Mensagem de Vencimento</h3>
+                {expiryInfo && (
+                    <div style={{
+                        background: expiryInfo.diffDays < 0 ? '#fff0f0' : expiryInfo.diffDays <= 7 ? '#fff8e1' : '#f0fff4',
+                        border: `1px solid ${expiryInfo.diffDays < 0 ? '#ff4757' : expiryInfo.diffDays <= 7 ? '#ffa500' : '#4caf50'}`,
+                        borderRadius: '10px', padding: '10px 14px', marginBottom: '16px', fontSize: '0.85rem',
+                        color: expiryInfo.diffDays < 0 ? '#cc0000' : expiryInfo.diffDays <= 7 ? '#cc7000' : '#2e7d32', fontWeight: 600
+                    }}>
+                        {expiryInfo.diffDays < 0
+                            ? `Treino "${expiryInfo.workoutName}" venceu ha ${Math.abs(expiryInfo.diffDays)} dia(s)`
+                            : expiryInfo.diffDays <= 7
+                            ? `Treino "${expiryInfo.workoutName}" vence em ${expiryInfo.diffDays} dia(s)`
+                            : `Treino "${expiryInfo.workoutName}" valido por mais ${expiryInfo.diffDays} dias`}
+                    </div>
+                )}
+                <label style={{ display: 'block', fontSize: '0.85rem', color: '#666', marginBottom: '8px', fontWeight: 600 }}>
+                    Edite a mensagem antes de enviar:
+                </label>
+                <textarea
+                    value={expiryMessage}
+                    onChange={e => setExpiryMessage(e.target.value)}
+                    rows={6}
+                    style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #ddd', fontSize: '0.9rem', lineHeight: '1.5', resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                />
+                <div style={{ display: 'flex', gap: '10px', marginTop: '16px', justifyContent: 'flex-end' }}>
+                    <button className="btn btn-outline" onClick={onClose}>Cancelar</button>
+                    <button className="btn btn-primary" style={{ background: '#25D366', borderColor: '#25D366' }} onClick={sendExpiryWhatsApp}>
+                        Enviar WhatsApp
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 export default function StudentProfile() {
     const { id } = useParams();
     const router = useRouter();
@@ -16,6 +55,8 @@ export default function StudentProfile() {
     const [savedWorkouts, setSavedWorkouts] = useState([]);
     const [showEditModal, setShowEditModal] = useState(false);
     const [editForm, setEditForm] = useState({ name: '', phone: '' });
+    const [showExpiryModal, setShowExpiryModal] = useState(false);
+    const [expiryMessage, setExpiryMessage] = useState('');
 
     const loadStudent = async () => {
         const data = await getStudent(id);
@@ -36,43 +77,58 @@ export default function StudentProfile() {
     }, [id]);
 
     const cardioLabels = {
-        "0": "Nenhuma",
-        "1-2": "1 a 2 vezes/semana",
-        "3-4": "3 a 4 vezes/semana",
-        "5+": "5 ou mais vezes/semana"
-    };
-
-    const dietEmojis = {
-        "Excelente": "🟢",
-        "Boa": "🔵",
-        "Regular": "🟡",
-        "Ruim": "🔴"
+        "0": "Nenhuma", "1-2": "1 a 2 vezes/semana",
+        "3-4": "3 a 4 vezes/semana", "5+": "5 ou mais vezes/semana"
     };
 
     const trainingDaysLabels = {
-        "2": "2x por semana",
-        "3": "3x por semana",
-        "4": "4x por semana",
-        "5": "5x por semana",
-        "6": "6x por semana"
+        "2": "2x por semana", "3": "3x por semana", "4": "4x por semana",
+        "5": "5x por semana", "6": "6x por semana"
+    };
+
+    const getExpiryInfo = () => {
+        const workouts = student?.workouts || [];
+        const withExpiry = workouts.filter(w => w.expiryDate);
+        if (withExpiry.length === 0) return null;
+        const latest = withExpiry[withExpiry.length - 1];
+        const expiry = new Date(latest.expiryDate);
+        const diffDays = Math.ceil((expiry - new Date()) / (1000 * 60 * 60 * 24));
+        return { diffDays, workoutName: latest.name };
+    };
+
+    const openExpiryWhatsApp = () => {
+        const expiryInfo = getExpiryInfo();
+        const firstName = student.name?.split(' ')[0] || student.name;
+        const workoutLink = `${window.location.origin}/treino/${student.id}`;
+        let msg = '';
+        if (expiryInfo && expiryInfo.diffDays < 0) {
+            msg = `Ola ${firstName}! Seu treino "${expiryInfo.workoutName}" venceu. Vamos montar um novo? Me chame!`;
+        } else if (expiryInfo && expiryInfo.diffDays <= 7) {
+            msg = `Ola ${firstName}! Seu treino "${expiryInfo.workoutName}" vence em ${expiryInfo.diffDays} dia(s). Vamos renovar?`;
+        } else {
+            msg = `Ola ${firstName}! Seu treino esta disponivel: ${workoutLink}\n\nQualquer duvida e so me chamar!`;
+        }
+        setExpiryMessage(msg);
+        setShowExpiryModal(true);
+    };
+
+    const sendExpiryWhatsApp = () => {
+        const phone = student.anamnesis?.basics?.phone || student.phone || "";
+        if (!phone) { alert("Numero de telefone nao encontrado."); return; }
+        const cleanPhone = phone.replace(/\D/g, '');
+        window.open(`https://wa.me/55${cleanPhone}?text=${encodeURIComponent(expiryMessage)}`, '_blank');
+        setShowExpiryModal(false);
     };
 
     const handleDelete = async () => {
-        const confirmed = window.confirm(
-            `⚠️ Tem certeza que deseja excluir o perfil de ${student.name}?\n\nEsta ação é irreversível e apagará todos os dados, anamnese e treinos do aluno.`
-        );
+        const confirmed = window.confirm(`Tem certeza que deseja excluir o perfil de ${student.name}?\n\nEsta acao e irreversivel.`);
         if (!confirmed) return;
-
-        const doubleConfirm = window.confirm(
-            `🔴 CONFIRMAÇÃO FINAL\n\nVocê está prestes a excluir permanentemente "${student.name}".\n\nClique em OK para confirmar a exclusão.`
-        );
+        const doubleConfirm = window.confirm(`CONFIRMACAO FINAL\n\nVoce esta prestes a excluir permanentemente "${student.name}".\n\nClique em OK para confirmar.`);
         if (!doubleConfirm) return;
-
         try {
             await deleteStudent(student.id);
             router.push('/dashboard/clients');
         } catch (err) {
-            console.error('Erro ao excluir aluno:', err);
             alert('Erro ao excluir aluno: ' + err.message);
         }
     };
@@ -80,54 +136,48 @@ export default function StudentProfile() {
     const handleSendApp = () => {
         const link = student.onboardingLink || `${window.location.origin}/onboarding/${student.id}`;
         navigator.clipboard.writeText(link);
-        alert('Link copiado para a área de transferência!\n\nEnvie para o aluno preencher a Anamnese.');
+        alert('Link copiado! Envie para o aluno preencher a Anamnese.');
+    };
+
+    const handleSendWorkout = () => {
+        const phone = student.anamnesis?.basics?.phone || student.phone || "";
+        const workoutLink = `${window.location.origin}/treino/${student.id}`;
+        if (!phone) { navigator.clipboard.writeText(workoutLink); alert('Link do treino copiado!\n\n' + workoutLink); return; }
+        const cleanPhone = phone.replace(/\D/g, '');
+        const msg = encodeURIComponent(`Ola ${student.name?.split(' ')[0]}! Acesse sua planilha de treino aqui: ${workoutLink}`);
+        window.open(`https://wa.me/55${cleanPhone}?text=${msg}`, '_blank');
     };
 
     const handleWhatsApp = () => {
         const phone = student.anamnesis?.basics?.phone || student.phone || "";
-        if (!phone) {
-            alert("Número de telefone não encontrado. Por favor, edite o perfil para adicionar.");
-            return;
-        }
-        const cleanPhone = phone.replace(/\D/g, '');
-        window.open(`https://wa.me/55${cleanPhone}`, '_blank');
-    };
-
-    const handleScrollToAvaliacao = () => {
-        const section = document.getElementById('anamnese-section');
-        if (section) section.scrollIntoView({ behavior: 'smooth' });
+        if (!phone) { alert("Numero de telefone nao encontrado."); return; }
+        window.open(`https://wa.me/55${phone.replace(/\D/g, '')}`, '_blank');
     };
 
     const handleScrollToPlanilhas = () => {
-        const section = document.getElementById('planilhas-section');
-        if (section) section.scrollIntoView({ behavior: 'smooth' });
+        document.getElementById('planilhas-section')?.scrollIntoView({ behavior: 'smooth' });
     };
 
     const openEditModal = () => {
-        setEditForm({
-            name: student.name || '',
-            phone: student.anamnesis?.basics?.phone || student.phone || ''
-        });
+        setEditForm({ name: student.name || '', phone: student.anamnesis?.basics?.phone || student.phone || '' });
         setShowEditModal(true);
     };
 
     const saveEdit = async () => {
-        const updatedStudent = { ...student, name: editForm.name, phone: editForm.phone };
-        if (updatedStudent.anamnesis?.basics) {
-            updatedStudent.anamnesis.basics.phone = editForm.phone;
-        }
-        await saveStudent(student.id, updatedStudent);
-        setStudent(updatedStudent);
+        const updated = { ...student, name: editForm.name, phone: editForm.phone };
+        if (updated.anamnesis?.basics) updated.anamnesis.basics.phone = editForm.phone;
+        await saveStudent(student.id, updated);
+        setStudent(updated);
         setShowEditModal(false);
     };
 
     const deleteWorkout = async (index) => {
         if (window.confirm('Tem certeza que deseja excluir esta planilha?')) {
-            const updatedWorkouts = [...savedWorkouts];
-            updatedWorkouts.splice(index, 1);
-            const updatedStudent = { ...student, workouts: updatedWorkouts };
+            const updated = [...savedWorkouts];
+            updated.splice(index, 1);
+            const updatedStudent = { ...student, workouts: updated };
             await saveStudent(student.id, updatedStudent);
-            setSavedWorkouts(updatedWorkouts);
+            setSavedWorkouts(updated);
             setStudent(updatedStudent);
         }
     };
@@ -140,45 +190,52 @@ export default function StudentProfile() {
         );
     }
 
+    const expiryInfo = getExpiryInfo();
+
     return (
         <div className={styles.profileContainer}>
             <header className={styles.profileHeader}>
-                <Link href="/dashboard/clients" className={styles.backButton}>←</Link>
+                <Link href="/dashboard/clients" className={styles.backButton}>&#8592;</Link>
                 <h1 className={styles.headerTitle}>Perfil do aluno</h1>
             </header>
 
             <div className={styles.profileCard}>
                 <div className={styles.profileMain}>
-                    <div className={styles.profileAvatar}>{student.avatar || '👤'}</div>
+                    <div className={styles.profileAvatar}>{student.avatar || '?'}</div>
                     <div className={styles.profileInfo}>
                         <div className={styles.profileName}>{student.name}</div>
-                        <div className={styles.ratingStars}>{'★'.repeat(student.rating || 0)}{'☆'.repeat(5 - (student.rating || 0))}</div>
+                        <div className={styles.ratingStars}>
+                            {'★'.repeat(student.rating || 0)}{'☆'.repeat(5 - (student.rating || 0))}
+                        </div>
                     </div>
                 </div>
-
                 <div className={styles.actionGrid}>
                     <div className={styles.actionItem} onClick={openEditModal} style={{ cursor: 'pointer' }}>
-                        <div className={styles.actionIcon}>✎</div>
+                        <div className={styles.actionIcon}>&#9998;</div>
                         <span className={styles.actionLabel}>Editar Perfil</span>
                     </div>
                     <div className={styles.actionItem} onClick={handleSendApp} style={{ cursor: 'pointer' }}>
-                        <div className={styles.actionIcon}>✉</div>
+                        <div className={styles.actionIcon}>&#9993;</div>
                         <span className={styles.actionLabel}>Enviar app para o aluno</span>
                     </div>
-                    <div className={styles.actionItem} onClick={handleScrollToAvaliacao} style={{ cursor: 'pointer' }}>
-                        <div className={styles.actionIcon}>🩺</div>
-                        <span className={styles.actionLabel}>Avaliação Física</span>
+                    <div className={styles.actionItem} onClick={handleSendWorkout} style={{ cursor: 'pointer' }}>
+                        <div className={styles.actionIcon} style={{ background: '#25D366' }}>&#128170;</div>
+                        <span className={styles.actionLabel}>Enviar Treino</span>
                     </div>
                     <div className={styles.actionItem} onClick={handleScrollToPlanilhas} style={{ cursor: 'pointer' }}>
-                        <div className={styles.actionIcon} style={{ background: '#7E52F3' }}>🏋️</div>
+                        <div className={styles.actionIcon} style={{ background: '#7E52F3' }}>&#127947;</div>
                         <span className={styles.actionLabel}>Planilhas de Treino</span>
                     </div>
+                    <div className={styles.actionItem} onClick={openExpiryWhatsApp} style={{ cursor: 'pointer' }}>
+                        <div className={styles.actionIcon} style={{ background: '#FF6B35' }}>&#128197;</div>
+                        <span className={styles.actionLabel}>Aviso de Vencimento</span>
+                    </div>
                     <div className={styles.actionItem} onClick={handleWhatsApp} style={{ cursor: 'pointer' }}>
-                        <div className={`${styles.actionIcon} ${styles.actionIconGreen}`}>💬</div>
+                        <div className={`${styles.actionIcon} ${styles.actionIconGreen}`}>&#128172;</div>
                         <span className={styles.actionLabel}>Enviar WhatsApp</span>
                     </div>
                     <div className={styles.actionItem} onClick={handleDelete} style={{ cursor: 'pointer' }}>
-                        <div className={styles.actionIcon} style={{ background: '#ff4757' }}>🗑️</div>
+                        <div className={styles.actionIcon} style={{ background: '#ff4757' }}>&#128465;</div>
                         <span className={styles.actionLabel} style={{ color: '#ff4757' }}>Excluir Aluno</span>
                     </div>
                 </div>
@@ -187,153 +244,80 @@ export default function StudentProfile() {
             {/* ANAMNESE */}
             <div id="anamnese-section" className={styles.section}>
                 <div className={styles.sectionHeader}>
-                    <h3 className={styles.sectionTitle}>📋 Anamnese & Ficha Cadastral</h3>
+                    <h3 className={styles.sectionTitle}>Anamnese &amp; Ficha Cadastral</h3>
                 </div>
                 {!student.anamnesis ? (
                     <div className={styles.anamnesisCard}>
                         <div style={{ padding: '24px', textAlign: 'center' }}>
-                            <div style={{ fontSize: '2rem', marginBottom: '12px' }}>⏳</div>
+                            <div style={{ fontSize: '2rem', marginBottom: '12px' }}>&#9203;</div>
                             <p style={{ fontSize: '0.95rem', fontWeight: 600 }}>Aguardando preenchimento do aluno</p>
-                            <p style={{ fontSize: '0.8rem', color: '#666', marginTop: '6px' }}>O aluno ainda não preencheu o formulário de anamnese.</p>
-                            {student.onboardingLink && (
-                                <button
-                                    className="btn btn-primary btn-sm"
-                                    style={{ marginTop: '16px' }}
-                                    onClick={() => navigator.clipboard.writeText(student.onboardingLink)}
-                                >
-                                    Copiar Link novamente
-                                </button>
-                            )}
+                            <p style={{ fontSize: '0.8rem', color: '#666', marginTop: '6px' }}>O aluno ainda nao preencheu o formulario de anamnese.</p>
                         </div>
                     </div>
                 ) : (
                     <>
                         <div className={styles.anamnesisCard}>
-                            <h4 className={styles.detailTitle}>📝 Informações Básicas</h4>
+                            <h4 className={styles.detailTitle}>Informacoes Basicas</h4>
                             <div className={styles.anamnesisGrid}>
-                                <div className={styles.anamnesisItem}>
-                                    <span className={styles.anamnesisLabel}>E-mail</span>
-                                    <span className={styles.anamnesisValue}>{student.anamnesis.basics?.email || '-'}</span>
-                                </div>
-                                <div className={styles.anamnesisItem}>
-                                    <span className={styles.anamnesisLabel}>Telefone</span>
-                                    <span className={styles.anamnesisValue}>{student.anamnesis.basics?.phone || '-'}</span>
-                                </div>
-                                <div className={styles.anamnesisItem}>
-                                    <span className={styles.anamnesisLabel}>Nascimento</span>
-                                    <span className={styles.anamnesisValue}>{student.anamnesis.basics?.birth || '-'}</span>
-                                </div>
-                                <div className={styles.anamnesisItem}>
-                                    <span className={styles.anamnesisLabel}>Objetivo</span>
-                                    <span className={styles.anamnesisValue}>
-                                        <span className={styles.goalBadge}>{student.anamnesis.basics?.goal || '-'}</span>
-                                    </span>
-                                </div>
-                                <div className={styles.anamnesisItem}>
-                                    <span className={styles.anamnesisLabel}>Peso</span>
-                                    <span className={styles.anamnesisValue}>{student.anamnesis.basics?.weight || '-'} kg</span>
-                                </div>
-                                <div className={styles.anamnesisItem}>
-                                    <span className={styles.anamnesisLabel}>Altura</span>
-                                    <span className={styles.anamnesisValue}>{student.anamnesis.basics?.height || '-'} cm</span>
-                                </div>
+                                <div className={styles.anamnesisItem}><span className={styles.anamnesisLabel}>E-mail</span><span className={styles.anamnesisValue}>{student.anamnesis.basics?.email || '-'}</span></div>
+                                <div className={styles.anamnesisItem}><span className={styles.anamnesisLabel}>Telefone</span><span className={styles.anamnesisValue}>{student.anamnesis.basics?.phone || '-'}</span></div>
+                                <div className={styles.anamnesisItem}><span className={styles.anamnesisLabel}>Nascimento</span><span className={styles.anamnesisValue}>{student.anamnesis.basics?.birth || '-'}</span></div>
+                                <div className={styles.anamnesisItem}><span className={styles.anamnesisLabel}>Objetivo</span><span className={styles.anamnesisValue}><span className={styles.goalBadge}>{student.anamnesis.basics?.goal || '-'}</span></span></div>
+                                <div className={styles.anamnesisItem}><span className={styles.anamnesisLabel}>Peso</span><span className={styles.anamnesisValue}>{student.anamnesis.basics?.weight || '-'} kg</span></div>
+                                <div className={styles.anamnesisItem}><span className={styles.anamnesisLabel}>Altura</span><span className={styles.anamnesisValue}>{student.anamnesis.basics?.height || '-'} cm</span></div>
                             </div>
                         </div>
 
                         <div className={styles.anamnesisCard} style={{ marginTop: '12px' }}>
-                            <h4 className={styles.detailTitle}>🏥 Anamnese Reativa</h4>
+                            <h4 className={styles.detailTitle}>Anamnese Reativa</h4>
                             <div style={{ marginBottom: '16px' }}>
-                                <span className={styles.anamnesisLabel}>Dores / Lesões reportadas</span>
+                                <span className={styles.anamnesisLabel}>Dores / Lesoes reportadas</span>
                                 <div className={styles.injuryTags}>
-                                    {(student.anamnesis.injuries || []).length > 0 ? (
-                                        student.anamnesis.injuries.map(injury => (
-                                            <span key={injury} className={styles.injuryTag}>⚠️ {injury}</span>
-                                        ))
-                                    ) : (
-                                        <span className={styles.noInjuryTag}>✅ Nenhuma dor ou lesão reportada</span>
-                                    )}
+                                    {(student.anamnesis.injuries || []).length > 0
+                                        ? student.anamnesis.injuries.map(injury => <span key={injury} className={styles.injuryTag}>{injury}</span>)
+                                        : <span className={styles.noInjuryTag}>Nenhuma dor ou lesao reportada</span>}
                                 </div>
                             </div>
                             <div className={styles.anamnesisGrid}>
                                 <div className={styles.anamnesisItem}>
                                     <span className={styles.anamnesisLabel}>Cirurgia</span>
                                     <span className={styles.anamnesisValue}>
-                                        {student.anamnesis.hadSurgery ? (
-                                            <span className={styles.surgeryYes}>Sim</span>
-                                        ) : (
-                                            <span className={styles.surgeryNo}>Não</span>
-                                        )}
+                                        {student.anamnesis.hadSurgery ? <span className={styles.surgeryYes}>Sim</span> : <span className={styles.surgeryNo}>Nao</span>}
                                     </span>
                                 </div>
-                                {student.anamnesis.hadSurgery && (
-                                    <>
-                                        <div className={styles.anamnesisItem}>
-                                            <span className={styles.anamnesisLabel}>Local</span>
-                                            <span className={styles.anamnesisValue}>{student.anamnesis.surgeryDetails || '—'}</span>
-                                        </div>
-                                        <div className={styles.anamnesisItem}>
-                                            <span className={styles.anamnesisLabel}>Há quanto tempo</span>
-                                            <span className={styles.anamnesisValue}>{student.anamnesis.surgeryTime || '—'}</span>
-                                        </div>
-                                    </>
-                                )}
+                                {student.anamnesis.hadSurgery && (<>
+                                    <div className={styles.anamnesisItem}><span className={styles.anamnesisLabel}>Local</span><span className={styles.anamnesisValue}>{student.anamnesis.surgeryDetails || '-'}</span></div>
+                                    <div className={styles.anamnesisItem}><span className={styles.anamnesisLabel}>Ha quanto tempo</span><span className={styles.anamnesisValue}>{student.anamnesis.surgeryTime || '-'}</span></div>
+                                </>)}
                             </div>
                         </div>
 
                         <div className={styles.anamnesisCard} style={{ marginTop: '12px' }}>
-                            <h4 className={styles.detailTitle}>🥦 Estilo de Vida</h4>
+                            <h4 className={styles.detailTitle}>Estilo de Vida</h4>
                             <div className={styles.anamnesisGrid}>
-                                <div className={styles.anamnesisItem}>
-                                    <span className={styles.anamnesisLabel}>Dias disponíveis para treino</span>
-                                    <span className={styles.anamnesisValue}>
-                                        <span className={styles.goalBadge}>
-                                            {trainingDaysLabels[student.anamnesis.lifestyle?.trainingDays] || (student.anamnesis.lifestyle?.trainingDays + 'x/semana') || '-'}
-                                        </span>
-                                    </span>
-                                </div>
-                                <div className={styles.anamnesisItem}>
-                                    <span className={styles.anamnesisLabel}>Dificuldade em ganhar massa</span>
-                                    <span className={styles.anamnesisValue}>{student.anamnesis.lifestyle?.muscleDifficulty || '—'}</span>
-                                </div>
-                                <div className={styles.anamnesisItem}>
-                                    <span className={styles.anamnesisLabel}>Cardio / Semana</span>
-                                    <span className={styles.anamnesisValue}>{cardioLabels[student.anamnesis.lifestyle?.cardioFrequency] || student.anamnesis.lifestyle?.cardioFrequency || '-'}</span>
-                                </div>
-                                <div className={styles.anamnesisItem}>
-                                    <span className={styles.anamnesisLabel}>Álcool</span>
-                                    <span className={styles.anamnesisValue}>{student.anamnesis.lifestyle?.alcohol || '-'}</span>
-                                </div>
-                                <div className={styles.anamnesisItem}>
-                                    <span className={styles.anamnesisLabel}>Fumante</span>
-                                    <span className={styles.anamnesisValue}>{student.anamnesis.lifestyle?.smoke || '-'}</span>
-                                </div>
+                                <div className={styles.anamnesisItem}><span className={styles.anamnesisLabel}>Dias disponiveis</span><span className={styles.anamnesisValue}><span className={styles.goalBadge}>{trainingDaysLabels[student.anamnesis.lifestyle?.trainingDays] || '-'}</span></span></div>
+                                <div className={styles.anamnesisItem}><span className={styles.anamnesisLabel}>Dificuldade em ganhar massa</span><span className={styles.anamnesisValue}>{student.anamnesis.lifestyle?.muscleDifficulty || '-'}</span></div>
+                                <div className={styles.anamnesisItem}><span className={styles.anamnesisLabel}>Horas disponiveis/dia</span><span className={styles.anamnesisValue}><span className={styles.goalBadge}>{student.anamnesis.lifestyle?.trainingHours || '-'}</span></span></div>
+                                <div className={styles.anamnesisItem}><span className={styles.anamnesisLabel}>Cardio / Semana</span><span className={styles.anamnesisValue}>{cardioLabels[student.anamnesis.lifestyle?.cardioFrequency] || '-'}</span></div>
+                                <div className={styles.anamnesisItem}><span className={styles.anamnesisLabel}>Alcool</span><span className={styles.anamnesisValue}>{student.anamnesis.lifestyle?.alcohol || '-'}</span></div>
+                                <div className={styles.anamnesisItem}><span className={styles.anamnesisLabel}>Fumante</span><span className={styles.anamnesisValue}>{student.anamnesis.lifestyle?.smoke || '-'}</span></div>
                             </div>
                             <div className={styles.dietSection}>
-                                <span className={styles.anamnesisLabel}>Alimentação</span>
+                                <span className={styles.anamnesisLabel}>Alimentacao</span>
                                 <div className={styles.dietBadge}>
-                                    <span>{dietEmojis[student.anamnesis.lifestyle?.dietRating] || '⚪'}</span>
                                     <span>{student.anamnesis.lifestyle?.dietRating || '-'}</span>
                                 </div>
                             </div>
                         </div>
 
                         <div className={styles.anamnesisCard} style={{ marginTop: '12px' }}>
-                            <h4 className={styles.detailTitle}>📸 Fotos de Avaliação</h4>
+                            <h4 className={styles.detailTitle}>Fotos de Avaliacao</h4>
                             <div className={styles.photosGrid}>
-                                {[
-                                    { id: 'front', label: 'Frente' },
-                                    { id: 'back', label: 'Costas' },
-                                    { id: 'right', label: 'Perfil D' },
-                                    { id: 'left', label: 'Perfil E' }
-                                ].map(slot => (
+                                {[{ id: 'front', label: 'Frente' }, { id: 'back', label: 'Costas' }, { id: 'right', label: 'Perfil D' }, { id: 'left', label: 'Perfil E' }].map(slot => (
                                     <div key={slot.id} className={styles.photoSlotPro}>
-                                        {student.anamnesis.photos?.[slot.id] ? (
-                                            <img src={student.anamnesis.photos[slot.id]} alt={slot.label} className={styles.photoImg} />
-                                        ) : (
-                                            <div className={styles.photoPlaceholder}>
-                                                <span>📷</span>
-                                            </div>
-                                        )}
+                                        {student.anamnesis.photos?.[slot.id]
+                                            ? <img src={student.anamnesis.photos[slot.id]} alt={slot.label} className={styles.photoImg} />
+                                            : <div className={styles.photoPlaceholder}><span>Foto</span></div>}
                                         <span className={styles.photoSlotLabel}>{slot.label}</span>
                                     </div>
                                 ))}
@@ -353,14 +337,14 @@ export default function StudentProfile() {
                         <span className={styles.statusLabel}>Status</span>
                         <span className={styles.statusValue}>{student.status}</span>
                         <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)' }}>
-                            {student.isProspect ? '⏳' : '✅'}
+                            {student.isProspect ? '...' : 'OK'}
                         </span>
                     </div>
                     {!student.isProspect && (
                         <div className={`${styles.statusCard} ${styles.statusCardRelease}`}>
                             <span className={styles.statusLabel}>Liberar</span>
                             <span className={styles.statusValue}>Acesso</span>
-                            <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)' }}>›</span>
+                            <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)' }}>&#8250;</span>
                         </div>
                     )}
                 </div>
@@ -370,12 +354,8 @@ export default function StudentProfile() {
             <div id="planilhas-section" className={styles.section}>
                 <div className={styles.sectionHeader}>
                     <h3 className={styles.sectionTitle}>Planilhas de treino</h3>
-                    <button
-                        className="btn btn-primary btn-sm"
-                        style={{ background: '#7E52F3', borderRadius: '12px' }}
-                        onClick={() => setShowWorkoutModal(true)}
-                        disabled={!student.anamnesis}
-                    >
+                    <button className="btn btn-primary btn-sm" style={{ background: '#7E52F3', borderRadius: '12px' }}
+                        onClick={() => setShowWorkoutModal(true)} disabled={!student.anamnesis}>
                         Adicionar +
                     </button>
                 </div>
@@ -390,29 +370,86 @@ export default function StudentProfile() {
                                 <div className={styles.savedWorkoutInfo}>
                                     <span className={styles.savedWorkoutName}>{w.name}</span>
                                     <span className={styles.savedWorkoutMeta}>
-                                        {w.workouts?.length || 0} treinos • Criado em {w.createdAt}
+                                        {w.workouts?.length || 0} treinos &bull; Criado em {w.createdAt}
+                                        {w.validityWeeks && ` \u2022 ${w.validityWeeks} semanas`}
                                     </span>
                                 </div>
                                 <div className={styles.savedWorkoutBadges}>
-                                    {w.workouts?.map(wk => (
-                                        <span key={wk.letter} className={styles.workoutLetterBadge}>{wk.letter}</span>
-                                    ))}
+                                    {w.workouts?.map(wk => <span key={wk.letter} className={styles.workoutLetterBadge}>{wk.letter}</span>)}
                                 </div>
                                 <span className={styles.savedWorkoutStatus} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    ✅ {w.status}
-                                    <button
-                                        onClick={() => deleteWorkout(i)}
+                                    {w.status}
+                                    <button onClick={() => deleteWorkout(i)}
                                         style={{ background: 'none', border: 'none', color: '#ff4757', cursor: 'pointer', fontSize: '1.1rem', padding: '4px' }}
-                                        title="Excluir planilha"
-                                    >
-                                        🗑️
-                                    </button>
+                                        title="Excluir planilha">&#128465;</button>
                                 </span>
                             </div>
                         ))}
                     </div>
                 )}
             </div>
+
+            {/* CARGA DO ALUNO */}
+            {student.seriesData && Object.keys(student.seriesData).length > 0 && (() => {
+                const workouts = student.workouts || [];
+                const cargaMap = {};
+                workouts.forEach((plan, planIdx) => {
+                    (plan.workouts || []).forEach((split, splitIdx) => {
+                        const splitKey = `${planIdx}-${splitIdx}`;
+                        const splitLabel = `${plan.name || 'Planilha ' + (planIdx + 1)} - Treino ${split.letter}`;
+                        (split.exercises || []).forEach((ex, exIdx) => {
+                            const numSeries = (() => { const m = ex.sets?.match(/^(\d+)/); return m ? parseInt(m[1]) : 3; })();
+                            const cargas = [];
+                            for (let si = 0; si < numSeries; si++) {
+                                const key = `${splitKey}-${exIdx}-${si}`;
+                                const entry = student.seriesData[key];
+                                if (entry?.carga) cargas.push({ serie: si + 1, carga: entry.carga, done: entry.done });
+                            }
+                            if (cargas.length > 0) {
+                                if (!cargaMap[ex.name]) cargaMap[ex.name] = [];
+                                cargaMap[ex.name].push({ splitLabel, cargas });
+                            }
+                        });
+                    });
+                });
+                const exercises = Object.entries(cargaMap);
+                if (exercises.length === 0) return null;
+                return (
+                    <div className={styles.section}>
+                        <div className={styles.sectionHeader}>
+                            <h3 className={styles.sectionTitle}>Carga Registrada pelo Aluno</h3>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            {exercises.map(([exName, entries]) => (
+                                <div key={exName} className={styles.anamnesisCard} style={{ padding: '16px 20px' }}>
+                                    <div style={{ fontWeight: 700, fontSize: '0.95rem', marginBottom: '10px', color: '#1a1a2e' }}>
+                                        {exName}
+                                    </div>
+                                    {entries.map((entry, i) => (
+                                        <div key={i} style={{ marginBottom: i < entries.length - 1 ? '10px' : 0 }}>
+                                            <div style={{ fontSize: '0.75rem', color: '#888', marginBottom: '6px', fontWeight: 600 }}>{entry.splitLabel}</div>
+                                            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                                {entry.cargas.map((s, si) => (
+                                                    <div key={si} style={{
+                                                        background: s.done ? '#e8f5e9' : '#f5f5f5',
+                                                        border: `1px solid ${s.done ? '#4caf50' : '#ddd'}`,
+                                                        borderRadius: '8px', padding: '6px 12px',
+                                                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px'
+                                                    }}>
+                                                        <span style={{ fontSize: '0.7rem', color: '#888', fontWeight: 600 }}>S{s.serie}</span>
+                                                        <span style={{ fontSize: '0.95rem', fontWeight: 800, color: s.done ? '#2e7d32' : '#333' }}>{s.carga} kg</span>
+                                                        {s.done && <span style={{ fontSize: '0.65rem', color: '#4caf50' }}>OK</span>}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                );
+            })()}
 
             {/* FEEDBACKS */}
             <div className={styles.section}>
@@ -448,8 +485,7 @@ export default function StudentProfile() {
                 onSave={async (plan) => {
                     if (student) {
                         const updatedStudent = {
-                            ...student,
-                            status: "Ativo",
+                            ...student, status: "Ativo",
                             workouts: [...(student.workouts || []), { ...plan, dateSaved: new Date().toISOString() }]
                         };
                         await saveStudent(student.id, updatedStudent);
@@ -463,30 +499,19 @@ export default function StudentProfile() {
 
             {/* EDIT MODAL */}
             {showEditModal && (
-                <div
-                    style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}
-                    onClick={() => setShowEditModal(false)}
-                >
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}
+                    onClick={() => setShowEditModal(false)}>
                     <div style={{ background: 'white', padding: '24px', borderRadius: '12px', width: '400px', maxWidth: '90%' }} onClick={e => e.stopPropagation()}>
-                        <h3 style={{ marginBottom: '16px', fontWeight: 'bold' }}>✏️ Editar Perfil</h3>
+                        <h3 style={{ marginBottom: '16px', fontWeight: 'bold' }}>Editar Perfil</h3>
                         <div style={{ marginBottom: '16px' }}>
                             <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '6px', color: '#666' }}>Nome Completo</label>
-                            <input
-                                type="text"
-                                value={editForm.name}
-                                onChange={e => setEditForm({ ...editForm, name: e.target.value })}
-                                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ccc' }}
-                            />
+                            <input type="text" value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })}
+                                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ccc' }} />
                         </div>
                         <div style={{ marginBottom: '24px' }}>
                             <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '6px', color: '#666' }}>WhatsApp (com DDD)</label>
-                            <input
-                                type="text"
-                                value={editForm.phone}
-                                onChange={e => setEditForm({ ...editForm, phone: e.target.value })}
-                                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ccc' }}
-                                placeholder="(11) 99999-9999"
-                            />
+                            <input type="text" value={editForm.phone} onChange={e => setEditForm({ ...editForm, phone: e.target.value })}
+                                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ccc' }} placeholder="(11) 99999-9999" />
                         </div>
                         <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
                             <button className="btn btn-outline" onClick={() => setShowEditModal(false)}>Cancelar</button>
@@ -494,6 +519,17 @@ export default function StudentProfile() {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* EXPIRY WHATSAPP MODAL */}
+            {showExpiryModal && (
+                <ExpiryModal
+                    expiryInfo={expiryInfo}
+                    expiryMessage={expiryMessage}
+                    setExpiryMessage={setExpiryMessage}
+                    sendExpiryWhatsApp={sendExpiryWhatsApp}
+                    onClose={() => setShowExpiryModal(false)}
+                />
             )}
         </div>
     );

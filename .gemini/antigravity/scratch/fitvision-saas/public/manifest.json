@@ -1,0 +1,22 @@
+{
+  "name": "FitVision - Meu Treino",
+  "short_name": "FitVision",
+  "description": "Acesse sua planilha de treino personalizada",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f0f1a",
+  "theme_color": "#7E52F3",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/fitvision-logo-symbol.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/fitvision-logo-symbol.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

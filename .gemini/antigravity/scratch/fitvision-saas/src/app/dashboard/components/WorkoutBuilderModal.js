@@ -1,9 +1,9 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import styles from "../clients/details.module.css";
 
-// ── Exercise Database ─────────────────────────────────────────────────────
+// â”€â”€ Exercise Database â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const exerciseDB = {
     Peito: [
         { name: "Supino Reto", sets: "4x12", equipment: "Barra", rest: "60s" },
@@ -68,7 +68,7 @@ export const allAvailableExercises = Object.entries(exerciseDB).flatMap(([muscle
     exs.map(ex => ({ ...ex, muscle }))
 );
 
-// ── Helpers ───────────────────────────────────────────────────────────────
+// â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export function parseSetsToArray(setsStr) {
     const match = setsStr?.match(/(\d+)x(\d+)/);
     if (match) {
@@ -87,7 +87,7 @@ export function formatSetsArray(setsArray) {
         : `${setsArray.length}s: ${setsArray.map(s => s.reps).join('/')}`;
 }
 
-// ── Suggestion Engine ─────────────────────────────────────────────────────
+// â”€â”€ Suggestion Engine â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const splitTemplates = {
     2: [
         { letter: "A", title: "Superior", muscles: ["Peito", "Costas", "Ombros", "Bíceps", "Tríceps"], pickCount: { Peito: 2, Costas: 2, Ombros: 2, Bíceps: 1, Tríceps: 1 } },
@@ -179,7 +179,7 @@ export function generateWorkoutSuggestion(student) {
     });
 }
 
-// ── Component ─────────────────────────────────────────────────────────────
+// â”€â”€ Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 /**
  * WorkoutBuilderModal
  * Props:
@@ -195,6 +195,7 @@ export default function WorkoutBuilderModal({ isOpen, onClose, onSave, student, 
         initialWorkouts || (isOpen ? generateWorkoutSuggestion(student) : [])
     );
     const [activeTab, setActiveTab] = useState(0);
+    const [validityWeeks, setValidityWeeks] = useState('4');
     const [workoutName, setWorkoutName] = useState(() => {
         if (!student?.name) return "Planilha";
         const displayName = student.name.split(' ').map(w => w[0].toUpperCase() + w.slice(1).toLowerCase()).join(' ');
@@ -234,7 +235,7 @@ export default function WorkoutBuilderModal({ isOpen, onClose, onSave, student, 
 
     if (!isOpen) return null;
 
-    // ── Handlers ────────────────────────────────────────────────────────
+    // â”€â”€ Handlers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const updateExercise = (workoutIdx, exerciseIdx, field, value) => {
         setSuggestedWorkouts(prev => {
             const updated = [...prev];
@@ -345,7 +346,10 @@ export default function WorkoutBuilderModal({ isOpen, onClose, onSave, student, 
     };
 
     const handleSave = () => {
-        onSave({ name: workoutName, workouts: suggestedWorkouts, status: "Ativo", createdAt: new Date().toLocaleDateString('pt-BR') });
+        const expiryDate = validityWeeks
+            ? new Date(Date.now() + parseInt(validityWeeks) * 7 * 24 * 60 * 60 * 1000).toISOString()
+            : null;
+        onSave({ name: workoutName, workouts: suggestedWorkouts, validityWeeks: validityWeeks || null, expiryDate, status: "Ativo", createdAt: new Date().toLocaleDateString('pt-BR') });
         onClose();
     };
 
@@ -369,8 +373,8 @@ export default function WorkoutBuilderModal({ isOpen, onClose, onSave, student, 
                         <h3 className={styles.workoutModalTitle}>🏋️ {modalTitle || "Sugestão de Treino"}</h3>
                         <p className={styles.workoutModalSubtitle}>
                             Baseado no perfil de {displayName}
-                            {goal && <> • Objetivo: <strong>{goal}</strong></>}
-                            {trainingDays && <> • <strong>{trainingDays}x/semana</strong></>}
+                            {goal && <> — Objetivo: <strong>{goal}</strong></>}
+                            {trainingDays && <> — <strong>{trainingDays}x/semana</strong></>}
                         </p>
                     </div>
                     <button className={styles.workoutModalClose} onClick={onClose}>✕</button>
@@ -392,6 +396,25 @@ export default function WorkoutBuilderModal({ isOpen, onClose, onSave, student, 
                         placeholder="Nome da planilha..."
                     />
                 </div>
+                <div className={styles.workoutNameSection} style={{ marginTop: '12px' }}>
+                    <label className={styles.workoutNameLabel}>VALIDADE (SEMANAS)</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <input
+                            type="number"
+                            min="1"
+                            max="52"
+                            className={styles.workoutNameInput}
+                            style={{ maxWidth: '100px' }}
+                            value={validityWeeks}
+                            onChange={e => setValidityWeeks(e.target.value)}
+                            placeholder="Ex: 4"
+                        />
+                        <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                            {validityWeeks ? `Vence em ${validityWeeks} semana${validityWeeks == 1 ? '' : 's'}` : 'Sem validade'}
+                        </span>
+                    </div>
+                </div>
+
 
                 {/* Tabs */}
                 <div className={styles.workoutTabs}>
@@ -435,7 +458,7 @@ export default function WorkoutBuilderModal({ isOpen, onClose, onSave, student, 
                                                         onClick={e => e.stopPropagation()}>▶️</a>
                                                 )}
                                             </div>
-                                            <div className={styles.exerciseMuscle}>{ex.muscle} • {ex.equipment}</div>
+                                            <div className={styles.exerciseMuscle}>{ex.muscle} — {ex.equipment}</div>
                                         </div>
                                         <div className={styles.exerciseControls}>
                                             <span className={styles.exerciseSets}>
@@ -479,6 +502,17 @@ export default function WorkoutBuilderModal({ isOpen, onClose, onSave, student, 
                                                     onChange={e => updateExercise(activeTab, exIdx, 'rest', e.target.value)}
                                                     placeholder="60s" style={{ maxWidth: '120px' }} />
                                             </div>
+                                            <div className={styles.editPanelSection} style={{ gridColumn: '1 / -1' }}>
+                                                <label className={styles.createFormLabel}>📋 Observações do treinador</label>
+                                                <textarea
+                                                    className={styles.createFormInput}
+                                                    value={ex.observation || ''}
+                                                    onChange={e => updateExercise(activeTab, exIdx, 'observation', e.target.value)}
+                                                    placeholder="Ex: Manter escápulas retraídas, descer controlado em 3s, não travar o cotovelo..."
+                                                    rows={3}
+                                                    style={{ resize: 'vertical', minHeight: '72px', fontFamily: 'inherit', lineHeight: '1.5' }}
+                                                />
+                                            </div>
                                         </div>
                                     )}
                                 </div>
@@ -512,7 +546,7 @@ export default function WorkoutBuilderModal({ isOpen, onClose, onSave, student, 
                                                 <div key={i} className={styles.addExerciseItem} onClick={() => addExerciseToWorkout(ex)}>
                                                     <div>
                                                         <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>{ex.name}</div>
-                                                        <div style={{ fontSize: '0.7rem', color: '#888' }}>{ex.muscle} • {ex.equipment}</div>
+                                                        <div style={{ fontSize: '0.7rem', color: '#888' }}>{ex.muscle} — {ex.equipment}</div>
                                                     </div>
                                                     <span style={{ color: 'var(--primary)', fontWeight: 700 }}>+</span>
                                                 </div>

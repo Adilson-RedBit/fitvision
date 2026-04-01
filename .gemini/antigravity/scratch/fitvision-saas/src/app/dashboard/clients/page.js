@@ -1,9 +1,56 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import styles from "./clients.module.css";
 import { getStudentsDB, createProspect } from "../../../utils/storage";
+
+function getExpiryInfo(workouts) {
+    if (!workouts || workouts.length === 0) return null;
+    // Get most recent workout with expiryDate
+    const withExpiry = workouts.filter(w => w.expiryDate);
+    if (withExpiry.length === 0) return null;
+    const latest = withExpiry[withExpiry.length - 1];
+    const expiry = new Date(latest.expiryDate);
+    const now = new Date();
+    const diffDays = Math.ceil((expiry - now) / (1000 * 60 * 60 * 24));
+    return { diffDays, expiryDate: expiry, workoutName: latest.name };
+}
+
+function ExpiryBadge({ diffDays }) {
+    if (diffDays === null || diffDays === undefined) return null;
+    if (diffDays < 0) {
+        return (
+            <span style={{
+                background: '#ff47571a', border: '1px solid #ff4757',
+                color: '#ff4757', borderRadius: '20px', padding: '2px 8px',
+                fontSize: '0.7rem', fontWeight: 700, whiteSpace: 'nowrap'
+            }}>
+                🔴 Vencido
+            </span>
+        );
+    }
+    if (diffDays <= 7) {
+        return (
+            <span style={{
+                background: '#ffa5001a', border: '1px solid #ffa500',
+                color: '#ffa500', borderRadius: '20px', padding: '2px 8px',
+                fontSize: '0.7rem', fontWeight: 700, whiteSpace: 'nowrap'
+            }}>
+                🟡 Vence em {diffDays}d
+            </span>
+        );
+    }
+    return (
+        <span style={{
+            background: '#4caf501a', border: '1px solid #4caf50',
+            color: '#4caf50', borderRadius: '20px', padding: '2px 8px',
+            fontSize: '0.7rem', fontWeight: 700, whiteSpace: 'nowrap'
+        }}>
+            🟢 {diffDays}d restantes
+        </span>
+    );
+}
 
 export default function ClientsPage() {
     const [showModal, setShowModal] = useState(false);
@@ -12,6 +59,7 @@ export default function ClientsPage() {
     const [registrationLink, setRegistrationLink] = useState(null);
     const [justCreatedName, setJustCreatedName] = useState("");
     const [loading, setLoading] = useState(false);
+    const [search, setSearch] = useState("");
 
     const loadClients = async () => {
         const db = await getStudentsDB();
@@ -19,7 +67,7 @@ export default function ClientsPage() {
             const nameParts = (c.name || "Aluno").split(" ");
             let initials = nameParts[0][0] || "";
             if (nameParts.length > 1) initials += nameParts[1][0];
-
+            const expiryInfo = getExpiryInfo(c.workouts);
             return {
                 id: c.id,
                 name: c.name,
@@ -29,7 +77,7 @@ export default function ClientsPage() {
                 phone: c.anamnesis?.basics?.phone || c.phone || "",
                 goal: c.anamnesis?.basics?.goal || c.goal || "-",
                 status: c.status?.toLowerCase() || "prospect",
-                workoutExpiry: c.workouts?.length ? "Ativo" : "-",
+                expiryInfo,
                 assessments: c.anamnesis ? 1 : 0
             };
         });
@@ -69,6 +117,10 @@ export default function ClientsPage() {
         setJustCreatedName("");
     };
 
+    const filtered = clients.filter(c =>
+        c.name?.toLowerCase().includes(search.toLowerCase())
+    );
+
     return (
         <div className={styles.pageContainer}>
             <div className={styles.searchContainer}>
@@ -77,23 +129,22 @@ export default function ClientsPage() {
                     <input
                         className={styles.searchInput}
                         placeholder="Pesquisar aluno..."
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
                     />
                 </div>
-                <button
-                    className={styles.fabAdd}
-                    onClick={() => setShowModal(true)}
-                >
+                <button className={styles.fabAdd} onClick={() => setShowModal(true)}>
                     Novo Cadastro
                 </button>
             </div>
 
             <div className={styles.clientsGrid}>
-                {clients.length === 0 && (
+                {filtered.length === 0 && (
                     <div style={{ padding: "40px", textAlign: "center", color: "var(--text-muted)", gridColumn: "1 / -1" }}>
                         Nenhum aluno cadastrado ainda.
                     </div>
                 )}
-                {clients.map((client) => (
+                {filtered.map((client) => (
                     <Link
                         key={client.id}
                         href={`/dashboard/clients/${client.id}`}
@@ -106,6 +157,11 @@ export default function ClientsPage() {
                                 {client.status === "expired" ? "Bloqueado" : "Ativo"}
                             </div>
                             <div className={styles.clientName}>{client.name}</div>
+                            {client.expiryInfo && (
+                                <div style={{ marginTop: '4px' }}>
+                                    <ExpiryBadge diffDays={client.expiryInfo.diffDays} />
+                                </div>
+                            )}
                         </div>
                         <div style={{ color: "var(--primary)", fontSize: "1.2rem" }}>›</div>
                     </Link>
@@ -137,15 +193,8 @@ export default function ClientsPage() {
                                         Compartilhe o link abaixo para que o aluno complete as informações cadastrais e anamnese.
                                     </p>
                                     <div className={styles.linkCopyBox}>
-                                        <input
-                                            readOnly
-                                            value={registrationLink}
-                                            className={styles.linkInput}
-                                        />
-                                        <button
-                                            className={styles.copyBtn}
-                                            onClick={() => navigator.clipboard.writeText(registrationLink)}
-                                        >
+                                        <input readOnly value={registrationLink} className={styles.linkInput} />
+                                        <button className={styles.copyBtn} onClick={() => navigator.clipboard.writeText(registrationLink)}>
                                             Copiar
                                         </button>
                                     </div>
@@ -170,6 +219,25 @@ export default function ClientsPage() {
                                             onChange={(e) => setForm({ ...form, name: e.target.value })}
                                             required
                                             autoFocus
+                                        />
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label className={styles.formLabel}>WhatsApp (com DDD)</label>
+                                        <input
+                                            className={styles.formInput}
+                                            placeholder="Ex: (11) 99999-9999"
+                                            value={form.phone}
+                                            onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label className={styles.formLabel}>E-mail</label>
+                                        <input
+                                            className={styles.formInput}
+                                            type="email"
+                                            placeholder="Ex: joao@email.com"
+                                            value={form.email}
+                                            onChange={(e) => setForm({ ...form, email: e.target.value })}
                                         />
                                     </div>
                                     <p className={styles.formHelp}>
