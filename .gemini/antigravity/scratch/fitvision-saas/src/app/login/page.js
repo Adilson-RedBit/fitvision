@@ -47,7 +47,7 @@ export default function LoginPage() {
         setLoading(true);
         setError("");
 
-        const { data, error: signUpError } = await supabase.auth.signUp({
+        const { error: signUpError } = await supabase.auth.signUp({
             email: email.trim().toLowerCase(),
             password,
             options: { data: { full_name: name.trim() } },
@@ -59,17 +59,7 @@ export default function LoginPage() {
             return;
         }
 
-        // Cria o perfil do trainer na tabela trainer_profiles
-        const { error: profileError } = await supabase
-            .from("trainer_profiles")
-            .insert({ id: data.user.id, full_name: name.trim(), email: email.trim().toLowerCase() });
-
-        if (profileError) {
-            setError("Conta criada, mas erro ao salvar perfil: " + profileError.message);
-            setLoading(false);
-            return;
-        }
-
+        // O trigger handle_new_user cria o perfil automaticamente
         router.push("/dashboard");
     };
 
