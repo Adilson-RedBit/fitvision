@@ -1,13 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 
-// Usa service role para permitir upload sem autenticação (onboarding público)
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
-
 export async function POST(request) {
+    // Inicializa dentro do handler para garantir acesso às env vars em runtime
+    const supabaseAdmin = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.SUPABASE_SERVICE_ROLE_KEY
+    );
+
     try {
         const { studentId, side, base64DataUrl } = await request.json();
 
