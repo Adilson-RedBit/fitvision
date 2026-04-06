@@ -13,8 +13,9 @@ export async function middleware(request) {
     if (pathname.startsWith('/renovacao')) return NextResponse.next();
     if (isPublic) return NextResponse.next();
 
-    // Verificar sessão Supabase
-    let response = NextResponse.next({ request });
+    // Verificar sessão Supabase — cria request com headers customizados
+    const requestHeaders = new Headers(request.headers);
+    let response = NextResponse.next({ request: { headers: requestHeaders } });
 
     const supabase = createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -76,10 +77,9 @@ export async function middleware(request) {
         return NextResponse.redirect(new URL(isTrainer ? '/dashboard' : '/client/portal', request.url));
     }
 
-    // Injeta o user id como header para uso nas API routes
-    if (user) {
-        response.headers.set('x-user-id', user.id);
-    }
+    // Injeta user id no request header para as API routes lerem
+    requestHeaders.set('x-user-id', user.id);
+    response = NextResponse.next({ request: { headers: requestHeaders } });
 
     return response;
 }
