@@ -16,7 +16,7 @@ export default function SettingsPage() {
             const [user, dbProfile] = await Promise.all([getCurrentUser(), getTrainerProfile()]);
             setProfile({
                 full_name: dbProfile?.full_name || "",
-                email: user?.email || "",
+                email: user?.email || dbProfile?.email || "",
                 phone: dbProfile?.phone || "",
                 cref: dbProfile?.cref || "",
             });

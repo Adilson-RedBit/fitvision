@@ -7,8 +7,9 @@ import { supabase } from './supabase';
 // ============================================================
 
 async function getTrainerId() {
-    const { data: { user } } = await supabase.auth.getUser();
-    return user?.id || null;
+    // getSession lê do cache local (sem rede) — mais confiável no browser
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.user?.id || null;
 }
 
 // Converte registro do Supabase para o formato usado pelo código existente
@@ -251,8 +252,8 @@ export async function signOut() {
  * Usuário atual
  */
 export async function getCurrentUser() {
-    const { data: { user } } = await supabase.auth.getUser();
-    return user;
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.user || null;
 }
 
 /**
