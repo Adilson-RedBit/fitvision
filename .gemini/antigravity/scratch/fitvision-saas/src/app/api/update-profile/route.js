@@ -1,36 +1,24 @@
-import { createServerClient } from '@supabase/ssr';
+import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+
+const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 
 export async function POST(request) {
-    const cookieStore = await cookies();
-
-    const supabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-        {
-            cookies: {
-                getAll() { return cookieStore.getAll(); },
-                setAll(cookiesToSet) {
-                    cookiesToSet.forEach(({ name, value, options }) =>
-                        cookieStore.set(name, value, options)
-                    );
-                },
-            },
-        }
-    );
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
+    // Usuário já validado pelo middleware — lê o id injetado como header
+    const userId = request.headers.get('x-user-id');
+    if (!userId) {
         return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
     }
 
     const { full_name, phone, cref } = await request.json();
 
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
         .from('trainer_profiles')
         .update({ full_name, phone, cref, updated_at: new Date().toISOString() })
-        .eq('id', user.id);
+        .eq('id', userId);
 
     if (error) {
         return NextResponse.json({ error: error.message }, { status: 500 });

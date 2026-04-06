@@ -76,6 +76,11 @@ export async function middleware(request) {
         return NextResponse.redirect(new URL(isTrainer ? '/dashboard' : '/client/portal', request.url));
     }
 
+    // Injeta o user id como header para uso nas API routes
+    if (user) {
+        response.headers.set('x-user-id', user.id);
+    }
+
     return response;
 }
 
