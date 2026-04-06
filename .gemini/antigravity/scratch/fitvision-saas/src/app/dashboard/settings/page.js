@@ -6,6 +6,7 @@ import { getTrainerProfile, getCurrentUser } from "../../../utils/storage";
 
 export default function SettingsPage() {
     const [profile, setProfile] = useState({ full_name: "", email: "", phone: "", cref: "" });
+    const [trainerId, setTrainerId] = useState(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
@@ -14,6 +15,7 @@ export default function SettingsPage() {
     useEffect(() => {
         const load = async () => {
             const [user, dbProfile] = await Promise.all([getCurrentUser(), getTrainerProfile()]);
+            if (dbProfile?.id) setTrainerId(dbProfile.id);
             setProfile({
                 full_name: dbProfile?.full_name || "",
                 email: user?.email || dbProfile?.email || "",
@@ -34,6 +36,7 @@ export default function SettingsPage() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
+                    trainer_id: trainerId,
                     full_name: profile.full_name,
                     phone: profile.phone,
                     cref: profile.cref,
