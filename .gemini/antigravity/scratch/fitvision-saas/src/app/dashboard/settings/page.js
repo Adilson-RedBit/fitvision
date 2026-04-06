@@ -26,19 +26,25 @@ export default function SettingsPage() {
     }, []);
 
     const handleSave = async () => {
+        console.log("🔧 handleSave chamado", profile);
         setSaving(true);
         setSaved(false);
         setSaveError("");
         try {
+            const { supabase } = await import("../../../utils/supabase");
+            const { data: { user } } = await supabase.auth.getUser();
+            console.log("🔧 user:", user?.id);
+
             await updateTrainerProfile({
                 full_name: profile.full_name,
                 phone: profile.phone,
                 cref: profile.cref,
             });
+            console.log("🔧 update OK");
             setSaved(true);
             setTimeout(() => setSaved(false), 3000);
         } catch (err) {
-            console.error("updateTrainerProfile error:", err);
+            console.error("🔧 updateTrainerProfile error:", err);
             setSaveError(err.message || "Erro desconhecido ao salvar.");
         } finally {
             setSaving(false);
