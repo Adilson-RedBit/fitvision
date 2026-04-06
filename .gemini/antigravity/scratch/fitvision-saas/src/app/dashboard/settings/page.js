@@ -9,6 +9,7 @@ export default function SettingsPage() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
+    const [saveError, setSaveError] = useState("");
 
     useEffect(() => {
         const load = async () => {
@@ -27,6 +28,7 @@ export default function SettingsPage() {
     const handleSave = async () => {
         setSaving(true);
         setSaved(false);
+        setSaveError("");
         try {
             await updateTrainerProfile({
                 full_name: profile.full_name,
@@ -36,7 +38,8 @@ export default function SettingsPage() {
             setSaved(true);
             setTimeout(() => setSaved(false), 3000);
         } catch (err) {
-            alert("Erro ao salvar: " + err.message);
+            console.error("updateTrainerProfile error:", err);
+            setSaveError(err.message || "Erro desconhecido ao salvar.");
         } finally {
             setSaving(false);
         }
@@ -102,6 +105,7 @@ export default function SettingsPage() {
                                     {saving ? "Salvando..." : "Salvar Alterações"}
                                 </button>
                                 {saved && <span style={{ color: "#4caf50", fontSize: "0.9rem", fontWeight: 600 }}>✓ Salvo!</span>}
+                                {saveError && <span style={{ color: "#e53935", fontSize: "0.85rem", fontWeight: 600 }}>✕ {saveError}</span>}
                             </div>
                         </>
                     )}

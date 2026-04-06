@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useParams } from "next/navigation";
 import styles from "../onboarding.module.css";
-import { getStudent, saveStudent, uploadAssessmentPhoto } from "../../../utils/storage";
+import { getStudent, saveStudent } from "../../../utils/storage";
 
 export default function OnboardingPage() {
     const params = useParams();
@@ -159,13 +159,19 @@ export default function OnboardingPage() {
         e.preventDefault();
         if (!student.id) { setSubmitted(true); return; }
 
-        // Faz upload das fotos para o Supabase Storage (substitui base64)
+        // Faz upload das fotos via API route (usa service role — funciona sem login)
         const uploadedPhotos = { front: null, back: null, right: null, left: null };
         await Promise.all(
             ['front', 'back', 'right', 'left'].map(async (side) => {
                 if (form.photos[side]) {
                     try {
-                        uploadedPhotos[side] = await uploadAssessmentPhoto(studentId, side, form.photos[side]);
+                        const res = await fetch('/api/upload-photo', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ studentId, side, base64DataUrl: form.photos[side] }),
+                        });
+                        const json = await res.json();
+                        uploadedPhotos[side] = json.url || form.photos[side];
                     } catch {
                         // fallback: mantém base64 se upload falhar
                         uploadedPhotos[side] = form.photos[side];

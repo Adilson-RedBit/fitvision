@@ -71,6 +71,14 @@ export default function DashboardLayout({ children }) {
                             {item.label}
                         </Link>
                     ))}
+                    <button
+                        onClick={handleLogout}
+                        className={styles.sidebarLink}
+                        style={{ width: '100%', background: 'none', border: 'none', textAlign: 'left', cursor: 'pointer' }}
+                    >
+                        <span className={styles.sidebarLinkIcon}>🚪</span>
+                        Sair
+                    </button>
                 </nav>
 
                 <div className={styles.sidebarFooter}>
@@ -81,12 +89,6 @@ export default function DashboardLayout({ children }) {
                             <div className={styles.sidebarUserRole}>Personal Trainer</div>
                         </div>
                     </div>
-                    <button
-                        onClick={handleLogout}
-                        style={{ width: '100%', marginTop: 12, padding: '10px', background: 'none', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 10, color: 'rgba(255,255,255,0.6)', cursor: 'pointer', fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
-                    >
-                        🚪 Sair
-                    </button>
                 </div>
             </aside>
 

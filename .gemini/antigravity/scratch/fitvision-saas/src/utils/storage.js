@@ -115,23 +115,11 @@ export async function getStudentByEmail(email) {
     const { data, error } = await supabase
         .from('students')
         .select('*')
-        .ilike('anamnesis->>email', email)
+        .ilike('email', email)
         .limit(1)
         .single();
 
-    if (error) {
-        // tenta também pelo campo email direto
-        const { data: data2, error: error2 } = await supabase
-            .from('students')
-            .select('*')
-            .ilike('email', email)
-            .limit(1)
-            .single();
-
-        if (error2) return null;
-        return toAppFormat(data2);
-    }
-
+    if (error) return null;
     return toAppFormat(data);
 }
 
@@ -197,7 +185,7 @@ export async function deleteStudent(id) {
  * Cria um novo aluno (prospect)
  * Substitui: createProspect(name, email, phone, goal)
  */
-export async function createProspect(name, email, phone, goal) {
+export async function createProspect(name, email, phone, _goal) {
     const trainerId = await getTrainerId();
     if (!trainerId) throw new Error('Não autenticado');
 
