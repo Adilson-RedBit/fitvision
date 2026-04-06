@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import styles from "../clients/clients.module.css";
-import { getTrainerProfile, updateTrainerProfile, getCurrentUser } from "../../../utils/storage";
+import { getTrainerProfile, getCurrentUser } from "../../../utils/storage";
 
 export default function SettingsPage() {
     const [profile, setProfile] = useState({ full_name: "", email: "", phone: "", cref: "" });
@@ -26,25 +26,24 @@ export default function SettingsPage() {
     }, []);
 
     const handleSave = async () => {
-        console.log("🔧 handleSave chamado", profile);
         setSaving(true);
         setSaved(false);
         setSaveError("");
         try {
-            const { supabase } = await import("../../../utils/supabase");
-            const { data: { user } } = await supabase.auth.getUser();
-            console.log("🔧 user:", user?.id);
-
-            await updateTrainerProfile({
-                full_name: profile.full_name,
-                phone: profile.phone,
-                cref: profile.cref,
+            const res = await fetch('/api/update-profile', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    full_name: profile.full_name,
+                    phone: profile.phone,
+                    cref: profile.cref,
+                }),
             });
-            console.log("🔧 update OK");
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.error || 'Erro ao salvar');
             setSaved(true);
             setTimeout(() => setSaved(false), 3000);
         } catch (err) {
-            console.error("🔧 updateTrainerProfile error:", err);
             setSaveError(err.message || "Erro desconhecido ao salvar.");
         } finally {
             setSaving(false);
