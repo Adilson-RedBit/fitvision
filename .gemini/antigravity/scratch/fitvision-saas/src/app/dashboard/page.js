@@ -1,53 +1,57 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import styles from "./dashboard.module.css";
 import Link from "next/link";
-
-const mockClients = [
-    {
-        name: "Rafael Mendes",
-        email: "rafael@email.com",
-        initials: "RM",
-        color: "var(--gradient-primary)",
-        goal: "Hipertrofia",
-        status: "active",
-        workoutExpiry: "12 dias",
-    },
-    {
-        name: "Carla Silva",
-        email: "carla@email.com",
-        initials: "CS",
-        color: "var(--gradient-accent)",
-        goal: "Emagrecimento",
-        status: "warning",
-        workoutExpiry: "3 dias",
-    },
-    {
-        name: "João Pedro",
-        email: "joao@email.com",
-        initials: "JP",
-        color: "var(--gradient-primary)",
-        goal: "Condicionamento",
-        status: "active",
-        workoutExpiry: "20 dias",
-    },
-    {
-        name: "Ana Costa",
-        email: "ana@email.com",
-        initials: "AC",
-        color: "var(--gradient-accent)",
-        goal: "Reabilitação",
-        status: "expired",
-        workoutExpiry: "Expirado",
-    },
-];
+import { getStudentsDB, getCurrentUser, getTrainerProfile } from "../../utils/storage";
 
 export default function DashboardPage() {
+    const [metrics, setMetrics] = useState({ total: 0, active: 0, atRisk: 0 });
+    const [trainerName, setTrainerName] = useState("Personal");
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const load = async () => {
+            const [profile, studentsMap] = await Promise.all([
+                getTrainerProfile(),
+                getStudentsDB(),
+            ]);
+
+            if (profile?.full_name) {
+                setTrainerName(profile.full_name.split(" ")[0]);
+            } else {
+                const user = await getCurrentUser();
+                if (user?.email) setTrainerName(user.email.split("@")[0]);
+            }
+
+            const students = Object.values(studentsMap);
+            const now = new Date();
+            const sevenDays = 7 * 24 * 60 * 60 * 1000;
+
+            const active = students.filter(s => s.status === "Ativo").length;
+            const atRisk = students.filter(s => {
+                const workouts = s.workouts || [];
+                const withExpiry = workouts.filter(w => w.expiryDate);
+                if (!withExpiry.length) return false;
+                const latest = withExpiry[withExpiry.length - 1];
+                const expiry = new Date(latest.expiryDate);
+                const diff = expiry - now;
+                return diff >= 0 && diff <= sevenDays;
+            }).length;
+
+            setMetrics({ total: students.length, active, atRisk });
+            setLoading(false);
+        };
+        load();
+        window.addEventListener("fitvision_storage_update", load);
+        return () => window.removeEventListener("fitvision_storage_update", load);
+    }, []);
+
     return (
         <div className={styles.dashboardContainer}>
             {/* Header Greeting */}
             <div className={styles.greeting}>
-                <h1 className={styles.greetingTitle}>Olá, Adilson</h1>
+                <h1 className={styles.greetingTitle}>Olá, {trainerName}</h1>
                 <p className={styles.greetingSubtitle}>Acompanhe suas métricas.</p>
             </div>
 
@@ -55,17 +59,17 @@ export default function DashboardPage() {
             <div className={styles.horizontalMetrics}>
                 <div className={styles.metricCard}>
                     <span className={styles.metricIcon}>👥</span>
-                    <div className={styles.metricValue}>24</div>
+                    <div className={styles.metricValue}>{loading ? "—" : metrics.total}</div>
                     <div className={styles.metricLabel}>Total de alunos</div>
                 </div>
                 <div className={styles.metricCard}>
                     <span className={styles.metricIcon}>👤</span>
-                    <div className={styles.metricValue}>18</div>
+                    <div className={styles.metricValue}>{loading ? "—" : metrics.active}</div>
                     <div className={styles.metricLabel}>Alunos ativos</div>
                 </div>
                 <div className={styles.metricCard}>
                     <span className={styles.metricIcon}>📅</span>
-                    <div className={styles.metricValue}>3</div>
+                    <div className={styles.metricValue}>{loading ? "—" : metrics.atRisk}</div>
                     <div className={styles.metricLabel}>Alunos em risco</div>
                 </div>
             </div>
@@ -81,16 +85,16 @@ export default function DashboardPage() {
 
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                     <div>
-                        <div className={styles.metricValue} style={{ fontSize: '2.4rem' }}>5</div>
-                        <div className={styles.metricLabel} style={{ textAlign: 'left' }}>Treinos realizados <br />esta semana</div>
+                        <div className={styles.metricValue} style={{ fontSize: '2.4rem' }}>{loading ? "—" : metrics.active}</div>
+                        <div className={styles.metricLabel} style={{ textAlign: 'left' }}>Alunos ativos<br />com treino</div>
                     </div>
 
                     <div className={styles.activityChart} style={{ flex: 1, marginLeft: '20px' }}>
                         {['S', 'T', 'Q', 'Q', 'S', 'S', 'D'].map((day, i) => (
                             <div key={i} className={styles.chartBarContainer}>
                                 <div
-                                    className={`${styles.chartBar} ${i === 2 ? styles.chartBarActive : ""}`}
-                                    style={{ height: i === 2 ? '80px' : '15px', width: '8px' }}
+                                    className={`${styles.chartBar} ${i === new Date().getDay() ? styles.chartBarActive : ""}`}
+                                    style={{ height: i === new Date().getDay() ? '80px' : '15px', width: '8px' }}
                                 />
                                 <span className={styles.chartDayLabel}>{day}</span>
                             </div>

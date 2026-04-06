@@ -2,10 +2,10 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useParams } from "next/navigation";
-import styles from "../onboarding.module.css";
-import { getStudent, saveStudent, uploadAssessmentPhoto } from "../../../utils/storage";
+import styles from "../../onboarding/onboarding.module.css";
+import { getStudent, saveStudent, uploadRenewalPhoto } from "../../../utils/storage";
 
-export default function OnboardingPage() {
+export default function RenovacaoPage() {
     const params = useParams();
     const studentId = params.id;
 
@@ -14,11 +14,8 @@ export default function OnboardingPage() {
     useEffect(() => {
         const load = async () => {
             const data = await getStudent(studentId);
-            if (data) {
-                setStudent(data);
-            } else {
-                setStudent({ name: "Aluno" });
-            }
+            if (data) setStudent(data);
+            else setStudent({ name: "Aluno" });
         };
         load();
     }, [studentId]);
@@ -27,26 +24,16 @@ export default function OnboardingPage() {
     const [cameraActive, setCameraActive] = useState(false);
     const [currentPhotoSide, setCurrentPhotoSide] = useState(null);
     const videoRef = useRef(null);
-    const canvasRef = useRef(null);
     const fileInputRefs = {
         front: useRef(null),
         back: useRef(null),
         right: useRef(null),
-        left: useRef(null)
+        left: useRef(null),
     };
 
     const [form, setForm] = useState({
-        email: "",
-        phone: "",
-        birthDate: "",
         weight: "",
         height: "",
-        goal: "Hipertrofia",
-        injuries: [],
-        otherInjuryDetails: "",
-        hadSurgery: null,
-        surgeryDetails: "",
-        surgeryTime: "",
         muscleDifficulty: "",
         trainingDays: "3",
         trainingHours: "1h",
@@ -54,24 +41,8 @@ export default function OnboardingPage() {
         alcohol: "Não",
         smoke: "Não",
         dietRating: "Boa",
-        photos: {
-            front: null,
-            back: null,
-            left: null,
-            right: null
-        }
+        photos: { front: null, back: null, left: null, right: null },
     });
-
-    const injuryOptions = ["Lombar", "Quadril", "Joelho", "Tornozelo", "Ombro", "Cervical", "Punho", "Outros"];
-
-    const toggleInjury = (injury) => {
-        setForm(prev => ({
-            ...prev,
-            injuries: prev.injuries.includes(injury)
-                ? prev.injuries.filter(i => i !== injury)
-                : [...prev.injuries, injury]
-        }));
-    };
 
     const handleFileChange = (side, e) => {
         if (e.target.files && e.target.files[0]) {
@@ -93,13 +64,8 @@ export default function OnboardingPage() {
                     }
                     canvas.width = width;
                     canvas.height = height;
-                    const ctx = canvas.getContext("2d");
-                    ctx.drawImage(img, 0, 0, width, height);
-                    const resizedUrl = canvas.toDataURL("image/jpeg", 0.7);
-                    setForm(prev => ({
-                        ...prev,
-                        photos: { ...prev.photos, [side]: resizedUrl }
-                    }));
+                    canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+                    setForm(prev => ({ ...prev, photos: { ...prev.photos, [side]: canvas.toDataURL("image/jpeg", 0.7) } }));
                 };
                 img.src = event.target.result;
             };
@@ -111,21 +77,13 @@ export default function OnboardingPage() {
         setCurrentPhotoSide(side);
         setCameraActive(true);
         navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
-            .then(stream => {
-                if (videoRef.current) {
-                    videoRef.current.srcObject = stream;
-                }
-            })
-            .catch(err => {
-                console.error("Erro ao acessar a câmera:", err);
-                alert("Não foi possível acessar a câmera.");
-                setCameraActive(false);
-            });
+            .then(stream => { if (videoRef.current) videoRef.current.srcObject = stream; })
+            .catch(() => { alert("Não foi possível acessar a câmera."); setCameraActive(false); });
     };
 
     const stopCamera = () => {
-        if (videoRef.current && videoRef.current.srcObject) {
-            videoRef.current.srcObject.getTracks().forEach(track => track.stop());
+        if (videoRef.current?.srcObject) {
+            videoRef.current.srcObject.getTracks().forEach(t => t.stop());
         }
         setCameraActive(false);
     };
@@ -145,13 +103,8 @@ export default function OnboardingPage() {
         }
         canvas.width = width;
         canvas.height = height;
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(video, 0, 0, width, height);
-        const imageData = canvas.toDataURL("image/jpeg", 0.7);
-        setForm(prev => ({
-            ...prev,
-            photos: { ...prev.photos, [currentPhotoSide]: imageData }
-        }));
+        canvas.getContext("2d").drawImage(video, 0, 0, width, height);
+        setForm(prev => ({ ...prev, photos: { ...prev.photos, [currentPhotoSide]: canvas.toDataURL("image/jpeg", 0.7) } }));
         stopCamera();
     };
 
@@ -159,51 +112,39 @@ export default function OnboardingPage() {
         e.preventDefault();
         if (!student.id) { setSubmitted(true); return; }
 
-        // Faz upload das fotos para o Supabase Storage (substitui base64)
+        const ts = Date.now();
         const uploadedPhotos = { front: null, back: null, right: null, left: null };
         await Promise.all(
             ['front', 'back', 'right', 'left'].map(async (side) => {
                 if (form.photos[side]) {
                     try {
-                        uploadedPhotos[side] = await uploadAssessmentPhoto(studentId, side, form.photos[side]);
+                        uploadedPhotos[side] = await uploadRenewalPhoto(studentId, ts, side, form.photos[side]);
                     } catch {
-                        // fallback: mantém base64 se upload falhar
                         uploadedPhotos[side] = form.photos[side];
                     }
                 }
             })
         );
 
-        const updatedStudent = {
-            ...student,
-            status: "Aguardando Treino",
-            anamnesis: {
-                basics: {
-                    email: form.email,
-                    phone: form.phone,
-                    birth: form.birthDate,
-                    goal: form.goal,
-                    weight: form.weight,
-                    height: form.height
-                },
-                injuries: form.injuries,
-                otherInjuryDetails: form.otherInjuryDetails,
-                hadSurgery: form.hadSurgery,
-                surgeryDetails: form.surgeryDetails,
-                surgeryTime: form.surgeryTime,
-                lifestyle: {
-                    trainingDays: form.trainingDays,
-                    trainingHours: form.trainingHours,
-                    muscleDifficulty: form.muscleDifficulty,
-                    cardioFrequency: form.cardioFrequency,
-                    alcohol: form.alcohol,
-                    smoke: form.smoke,
-                    dietRating: form.dietRating
-                },
-                photos: uploadedPhotos
-            }
+        const renewal = {
+            date: new Date().toLocaleDateString('pt-BR'),
+            dateISO: new Date().toISOString(),
+            basics: { weight: form.weight, height: form.height },
+            lifestyle: {
+                trainingDays: form.trainingDays,
+                trainingHours: form.trainingHours,
+                muscleDifficulty: form.muscleDifficulty,
+                cardioFrequency: form.cardioFrequency,
+                alcohol: form.alcohol,
+                smoke: form.smoke,
+                dietRating: form.dietRating,
+            },
+            photos: uploadedPhotos,
         };
-        await saveStudent(studentId, updatedStudent);
+
+        const currentAnamnesis = student.anamnesis || {};
+        const renewals = [...(currentAnamnesis.renewals || []), renewal];
+        await saveStudent(studentId, { ...student, anamnesis: { ...currentAnamnesis, renewals } });
         setSubmitted(true);
     };
 
@@ -212,11 +153,10 @@ export default function OnboardingPage() {
             <div className={styles.pageContainer}>
                 <div className={styles.onboardingCard}>
                     <div className={styles.successView}>
-                        <div className={styles.successIcon}>🎉</div>
-                        <h2 className={styles.successTitle}>Tudo pronto, {student.name ? student.name.split(' ')[0] : ''}!</h2>
+                        <div className={styles.successIcon}>✅</div>
+                        <h2 className={styles.successTitle}>Renovação enviada, {student.name?.split(' ')[0]}!</h2>
                         <p className={styles.successText}>
-                            Suas informações foram enviadas com sucesso ao seu treinador.
-                            Logo ele entrará em contato para dar início aos seus treinos!
+                            Suas informações foram atualizadas com sucesso. Seu personal irá preparar sua nova planilha em breve!
                         </p>
                     </div>
                 </div>
@@ -235,79 +175,22 @@ export default function OnboardingPage() {
                             <span style={{ color: '#B46BFB' }}>Vision</span>
                         </span>
                     </div>
-                    <h1 className={styles.headerTitle}>Ficha Cadastral</h1>
-                    <p className={styles.headerSubtitle}>Bem-vindo, <strong>{student.name}</strong>! Preencha seus dados para começar.</p>
+                    <h1 className={styles.headerTitle}>Ficha de Renovação de Treino</h1>
+                    <p className={styles.headerSubtitle}>Olá, <strong>{student.name}</strong>! Atualize suas informações para o novo ciclo.</p>
                 </div>
 
                 <form className={styles.formBody} onSubmit={handleSubmit}>
-                    <h2 className={styles.sectionTitle}>🔍 Informações Básicas</h2>
 
-                    <div className={styles.formGroup}>
-                        <label className={styles.label}>E-mail</label>
-                        <input
-                            type="email"
-                            className={styles.input}
-                            placeholder="seu@email.com"
-                            required
-                            value={form.email}
-                            onChange={e => setForm({ ...form, email: e.target.value })}
-                        />
-                    </div>
-
-                    <div className={styles.formGroup}>
-                        <label className={styles.label}>Telefone / WhatsApp</label>
-                        <input
-                            type="tel"
-                            className={styles.input}
-                            placeholder="(11) 99999-0000"
-                            required
-                            value={form.phone}
-                            onChange={e => setForm({ ...form, phone: e.target.value })}
-                        />
-                    </div>
-
+                    {/* MEDIDAS ATUAIS */}
+                    <h2 className={styles.sectionTitle}>📏 Medidas Atuais</h2>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                         <div className={styles.formGroup}>
-                            <label className={styles.label}>Nascimento</label>
-                            <input
-                                type="text"
-                                className={styles.input}
-                                placeholder="dd/mm/aaaa"
-                                required
-                                maxLength={10}
-                                value={form.birthDate}
-                                onChange={e => {
-                                    let v = e.target.value.replace(/\D/g, '');
-                                    if (v.length > 8) v = v.slice(0, 8);
-                                    if (v.length > 4) v = v.slice(0, 2) + '/' + v.slice(2, 4) + '/' + v.slice(4);
-                                    else if (v.length > 2) v = v.slice(0, 2) + '/' + v.slice(2);
-                                    setForm({ ...form, birthDate: v });
-                                }}
-                            />
-                        </div>
-                        <div className={styles.formGroup}>
-                            <label className={styles.label}>Objetivo</label>
-                            <select
-                                className={styles.select}
-                                value={form.goal}
-                                onChange={e => setForm({ ...form, goal: e.target.value })}
-                            >
-                                <option>Hipertrofia</option>
-                                <option>Emagrecimento</option>
-                                <option>Condicionamento</option>
-                                <option>Definição</option>
-                                <option>Saúde Geral</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                        <div className={styles.formGroup}>
-                            <label className={styles.label}>Peso (kg)</label>
+                            <label className={styles.label}>Peso atual (kg)</label>
                             <input
                                 type="number"
                                 className={styles.input}
                                 placeholder="75"
+                                required
                                 value={form.weight}
                                 onChange={e => setForm({ ...form, weight: e.target.value })}
                             />
@@ -318,83 +201,14 @@ export default function OnboardingPage() {
                                 type="number"
                                 className={styles.input}
                                 placeholder="175"
+                                required
                                 value={form.height}
                                 onChange={e => setForm({ ...form, height: e.target.value })}
                             />
                         </div>
                     </div>
 
-                    <h2 className={styles.sectionTitle}>🏥 Anamnese Reativa</h2>
-
-                    <div className={styles.formGroup}>
-                        <label className={styles.label}>Você sente dores ou tem lesões em algum destes locais?</label>
-                        <p className={styles.helperText}>Selecione todas as opções que se aplicam.</p>
-                        <div className={styles.buttonGroup}>
-                            {injuryOptions.map(option => (
-                                <button
-                                    key={option}
-                                    type="button"
-                                    className={`${styles.selectableBtn} ${form.injuries.includes(option) ? styles.selectableBtnActive : ""}`}
-                                    onClick={() => toggleInjury(option)}
-                                >
-                                    {option}
-                                </button>
-                            ))}
-                        </div>
-                        {form.injuries.includes("Outros") && (
-                            <div className={styles.othersField}>
-                                <label className={styles.label}>Descreva outras dores ou lesões:</label>
-                                <textarea
-                                    className={styles.textarea}
-                                    placeholder="Detalhe aqui..."
-                                    value={form.otherInjuryDetails}
-                                    onChange={e => setForm({ ...form, otherInjuryDetails: e.target.value })}
-                                />
-                            </div>
-                        )}
-                    </div>
-
-                    <div className={styles.formGroup}>
-                        <label className={styles.label}>Já passou por algum procedimento cirúrgico?</label>
-                        <div className={styles.radioGroup}>
-                            <div
-                                className={`${styles.radioOption} ${form.hadSurgery === true ? styles.radioOptionActive : ""}`}
-                                onClick={() => setForm({ ...form, hadSurgery: true })}
-                            >
-                                Sim
-                            </div>
-                            <div
-                                className={`${styles.radioOption} ${form.hadSurgery === false ? styles.radioOptionActive : ""}`}
-                                onClick={() => setForm({ ...form, hadSurgery: false })}
-                            >
-                                Não
-                            </div>
-                        </div>
-                    </div>
-
-                    {form.hadSurgery && (
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>Onde?</label>
-                                <input
-                                    className={styles.input}
-                                    placeholder="Ex: Joelho"
-                                    value={form.surgeryDetails}
-                                    onChange={e => setForm({ ...form, surgeryDetails: e.target.value })}
-                                />
-                            </div>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>Há quanto tempo?</label>
-                                <input
-                                    className={styles.input}
-                                    placeholder="Ex: 2 anos"
-                                    value={form.surgeryTime}
-                                    onChange={e => setForm({ ...form, surgeryTime: e.target.value })}
-                                />
-                            </div>
-                        </div>
-                    )}
-
+                    {/* ESTILO DE VIDA */}
                     <h2 className={styles.sectionTitle}>🥦 Estilo de Vida</h2>
 
                     <div className={styles.formGroup}>
@@ -423,7 +237,7 @@ export default function OnboardingPage() {
                     </div>
 
                     <div className={styles.formGroup}>
-                        <label className={styles.label}>Qual a disponibilidade em horas diárias você tem incluído o cárdio?</label>
+                        <label className={styles.label}>Disponibilidade em horas diárias (incluindo cárdio)</label>
                         <div className={styles.radioGroup}>
                             {["1h", "1h30", "2h", "2h30", "3h+"].map(h => (
                                 <div
@@ -494,15 +308,16 @@ export default function OnboardingPage() {
                         </div>
                     </div>
 
+                    {/* FOTOS */}
                     <h2 className={styles.sectionTitle}>📸 Fotos para Avaliação</h2>
-                    <p className={styles.helperText}>Envie fotos ou capture agora para melhor acompanhamento.</p>
+                    <p className={styles.helperText}>Envie fotos atuais para comparação com sua avaliação anterior.</p>
 
                     <div className={styles.photoGrid}>
                         {[
                             { id: 'front', label: 'Frente', icon: '👤' },
                             { id: 'back', label: 'Costas', icon: '👤' },
                             { id: 'right', label: 'Perfil D', icon: '👥' },
-                            { id: 'left', label: 'Perfil E', icon: '👥' }
+                            { id: 'left', label: 'Perfil E', icon: '👥' },
                         ].map(slot => (
                             <div key={slot.id} className={styles.photoSlot}>
                                 {form.photos[slot.id] ? (
@@ -513,13 +328,8 @@ export default function OnboardingPage() {
                                                 type="button"
                                                 className={styles.actionBtn}
                                                 onClick={() => {
-                                                    setForm(prev => ({
-                                                        ...prev,
-                                                        photos: { ...prev.photos, [slot.id]: null }
-                                                    }));
-                                                    if (fileInputRefs[slot.id].current) {
-                                                        fileInputRefs[slot.id].current.value = "";
-                                                    }
+                                                    setForm(prev => ({ ...prev, photos: { ...prev.photos, [slot.id]: null } }));
+                                                    if (fileInputRefs[slot.id].current) fileInputRefs[slot.id].current.value = "";
                                                 }}
                                             >
                                                 Remover / Trocar
@@ -531,22 +341,10 @@ export default function OnboardingPage() {
                                         <div className={styles.photoIcon}>{slot.icon}</div>
                                         <div className={styles.photoLabel}>{slot.label}</div>
                                         <div className={styles.slotButtonContainer}>
-                                            <button
-                                                type="button"
-                                                className={`${styles.slotBtn} ${styles.cameraBtn}`}
-                                                onClick={() => startCamera(slot.id)}
-                                            >
+                                            <button type="button" className={`${styles.slotBtn} ${styles.cameraBtn}`} onClick={() => startCamera(slot.id)}>
                                                 📸 Câmera
                                             </button>
-                                            <button
-                                                type="button"
-                                                className={`${styles.slotBtn} ${styles.galleryBtn}`}
-                                                onClick={() => {
-                                                    if (fileInputRefs[slot.id].current) {
-                                                        fileInputRefs[slot.id].current.click();
-                                                    }
-                                                }}
-                                            >
+                                            <button type="button" className={`${styles.slotBtn} ${styles.galleryBtn}`} onClick={() => fileInputRefs[slot.id].current?.click()}>
                                                 📁 Galeria
                                             </button>
                                         </div>
@@ -557,15 +355,14 @@ export default function OnboardingPage() {
                                     accept="image/*"
                                     hidden
                                     ref={fileInputRefs[slot.id]}
-                                    id={`file-${slot.id}`}
-                                    onChange={(e) => handleFileChange(slot.id, e)}
+                                    onChange={e => handleFileChange(slot.id, e)}
                                 />
                             </div>
                         ))}
                     </div>
 
                     <button type="submit" className={styles.submitBtn}>
-                        Finalizar Cadastro
+                        Enviar Renovação
                     </button>
                 </form>
             </div>
@@ -574,14 +371,9 @@ export default function OnboardingPage() {
                 <div className={styles.modalOverlay}>
                     <div className={styles.cameraContainer}>
                         <button className={styles.closeCamera} onClick={stopCamera}>✕</button>
-                        <video
-                            ref={videoRef}
-                            autoPlay
-                            playsInline
-                            className={styles.videoFeed}
-                        />
+                        <video ref={videoRef} autoPlay playsInline className={styles.videoFeed} />
                         <div className={styles.cameraControls}>
-                            <button type="button" className={styles.captureBtn} onClick={capturePhoto}></button>
+                            <button type="button" className={styles.captureBtn} onClick={capturePhoto} />
                         </div>
                     </div>
                 </div>

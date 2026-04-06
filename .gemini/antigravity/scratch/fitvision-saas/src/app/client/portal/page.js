@@ -35,18 +35,15 @@ export default function ClientPortalPage() {
                 const { data: { user } } = await supabase.auth.getUser();
                 if (!user) { setLoading(false); return; }
 
-                const { getStudentsDB } = await import("../../../utils/storage");
-                const db = await getStudentsDB();
-                const foundStudent = Object.values(db).find(
-                    (s) => (s.anamnesis?.basics?.email || "").toLowerCase() === user.email.toLowerCase() ||
-                           (s.email || "").toLowerCase() === user.email.toLowerCase() ||
-                           s.id === user.id
-                );
+                const { getStudentByEmail } = await import("../../../utils/storage");
+                const foundStudent = await getStudentByEmail(user.email);
 
                 if (foundStudent) {
                     setStudent(foundStudent);
+                    // workoutPlan = array de splits do último plano
                     if (foundStudent.workouts && foundStudent.workouts.length > 0) {
-                        setWorkoutPlan(foundStudent.workouts[foundStudent.workouts.length - 1]);
+                        const lastPlan = foundStudent.workouts[foundStudent.workouts.length - 1];
+                        setWorkoutPlan(lastPlan.workouts || []);
                     }
                 }
             } catch (err) {
@@ -215,7 +212,7 @@ export default function ClientPortalPage() {
                 {activeTab === "workouts" && (
                     <>
                         {/* Progress Summary */}
-                        <div className={styles.progressSummary}>
+                        {currentDay && <div className={styles.progressSummary}>
                             <div className={styles.progressInfo}>
                                 <div className={styles.progressTitle}>
                                     {currentDay.label} â€” {currentDay.focus}
@@ -236,7 +233,7 @@ export default function ClientPortalPage() {
                             >
                                 {progressPercent}%
                             </div>
-                        </div>
+                        </div>}
 
                         {/* Day Tabs */}
                         {workoutPlan.length > 0 ? (

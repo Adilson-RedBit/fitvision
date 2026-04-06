@@ -5,11 +5,12 @@ export async function middleware(request) {
     const { pathname } = request.nextUrl;
 
     // Rotas públicas — não precisam de autenticação
-    const publicRoutes = ['/', '/login', '/apresentacao', '/auth'];
+    const publicRoutes = ['/', '/login', '/client', '/apresentacao', '/auth'];
     const isPublic = publicRoutes.some(route => pathname === route || pathname.startsWith(route));
 
-    // Onboarding é público (aluno preenche sem login)
+    // Onboarding e renovação são públicos (aluno preenche sem login)
     if (pathname.startsWith('/onboarding')) return NextResponse.next();
+    if (pathname.startsWith('/renovacao')) return NextResponse.next();
     if (isPublic) return NextResponse.next();
 
     // Verificar sessão Supabase
@@ -51,31 +52,28 @@ export async function middleware(request) {
         return NextResponse.next();
     }
 
-    // Com sessão — verificar role
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
+    // Com sessão — verificar role pela existência em trainer_profiles
+    const { data: trainerProfile } = await supabase
+        .from('trainer_profiles')
+        .select('id')
         .eq('id', user.id)
         .single();
 
+    const isTrainer = !!trainerProfile;
+
     // Aluno tentando acessar dashboard do personal
-    if (pathname.startsWith('/dashboard') && profile?.role === 'client') {
+    if (pathname.startsWith('/dashboard') && !isTrainer) {
         return NextResponse.redirect(new URL('/client/portal', request.url));
     }
 
     // Personal tentando acessar portal do aluno
-    if (pathname.startsWith('/client/portal') && profile?.role === 'trainer') {
+    if (pathname.startsWith('/client/portal') && isTrainer) {
         return NextResponse.redirect(new URL('/dashboard', request.url));
     }
 
     // Usuário logado tentando acessar /login — redirecionar para área correta
     if (pathname === '/login') {
-        if (profile?.role === 'trainer') {
-            return NextResponse.redirect(new URL('/dashboard', request.url));
-        }
-        if (profile?.role === 'client') {
-            return NextResponse.redirect(new URL('/client/portal', request.url));
-        }
+        return NextResponse.redirect(new URL(isTrainer ? '/dashboard' : '/client/portal', request.url));
     }
 
     return response;

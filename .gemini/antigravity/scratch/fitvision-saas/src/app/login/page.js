@@ -30,19 +30,17 @@ export default function LoginPage() {
             return;
         }
 
-        // Verificar se é trainer
-        const { data: profile } = await supabase
-            .from("profiles")
-            .select("role")
+        // Verificar se é trainer pela existência em trainer_profiles
+        const { data: trainerProfile } = await supabase
+            .from("trainer_profiles")
+            .select("id")
             .eq("id", data.user.id)
             .single();
 
-        if (profile?.role === "trainer") {
+        if (trainerProfile) {
             router.push("/dashboard");
-        } else if (profile?.role === "client") {
-            router.push("/client/portal");
         } else {
-            router.push("/dashboard");
+            router.push("/client/portal");
         }
     };
 

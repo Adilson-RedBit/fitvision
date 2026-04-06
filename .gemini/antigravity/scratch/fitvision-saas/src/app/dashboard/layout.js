@@ -1,8 +1,9 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import styles from "./dashboard.module.css";
+import { signOut } from "../../utils/storage";
 
 const navItems = [
     { href: "/dashboard", icon: "📊", label: "Visão Geral" },
@@ -18,6 +19,12 @@ const settingsItems = [
 
 export default function DashboardLayout({ children }) {
     const pathname = usePathname();
+    const router = useRouter();
+
+    const handleLogout = async () => {
+        await signOut();
+        router.push("/login");
+    };
 
     const isActive = (href) => {
         if (href === "/dashboard") return pathname === "/dashboard";
@@ -74,6 +81,12 @@ export default function DashboardLayout({ children }) {
                             <div className={styles.sidebarUserRole}>Personal Trainer</div>
                         </div>
                     </div>
+                    <button
+                        onClick={handleLogout}
+                        style={{ width: '100%', marginTop: 12, padding: '10px', background: 'none', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 10, color: 'rgba(255,255,255,0.6)', cursor: 'pointer', fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+                    >
+                        🚪 Sair
+                    </button>
                 </div>
             </aside>
 

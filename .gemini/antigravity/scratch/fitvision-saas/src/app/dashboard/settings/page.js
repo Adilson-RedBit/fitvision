@@ -1,8 +1,47 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import styles from "../clients/clients.module.css";
+import { getTrainerProfile, updateTrainerProfile, getCurrentUser } from "../../../utils/storage";
 
 export default function SettingsPage() {
+    const [profile, setProfile] = useState({ full_name: "", email: "", phone: "", cref: "" });
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [saved, setSaved] = useState(false);
+
+    useEffect(() => {
+        const load = async () => {
+            const [user, dbProfile] = await Promise.all([getCurrentUser(), getTrainerProfile()]);
+            setProfile({
+                full_name: dbProfile?.full_name || "",
+                email: user?.email || "",
+                phone: dbProfile?.phone || "",
+                cref: dbProfile?.cref || "",
+            });
+            setLoading(false);
+        };
+        load();
+    }, []);
+
+    const handleSave = async () => {
+        setSaving(true);
+        setSaved(false);
+        try {
+            await updateTrainerProfile({
+                full_name: profile.full_name,
+                phone: profile.phone,
+                cref: profile.cref,
+            });
+            setSaved(true);
+            setTimeout(() => setSaved(false), 3000);
+        } catch (err) {
+            alert("Erro ao salvar: " + err.message);
+        } finally {
+            setSaving(false);
+        }
+    };
+
     return (
         <>
             <div className={styles.pageHeader}>
@@ -18,50 +57,54 @@ export default function SettingsPage() {
                     <h3 style={{ fontSize: "1.05rem", fontWeight: 700, marginBottom: 20, fontFamily: "var(--font-display)" }}>
                         Perfil do Personal
                     </h3>
-                    <div className={styles.formGroup}>
-                        <label className={styles.formLabel}>Nome Completo</label>
-                        <input className={styles.formInput} defaultValue="Coach Demo" />
-                    </div>
-                    <div className={styles.formGroup}>
-                        <label className={styles.formLabel}>E-mail</label>
-                        <input className={styles.formInput} defaultValue="coach@fitvision.com" type="email" />
-                    </div>
-                    <div className={styles.formGroup}>
-                        <label className={styles.formLabel}>Telefone</label>
-                        <input className={styles.formInput} defaultValue="(11) 99999-0000" />
-                    </div>
-                    <div className={styles.formGroup}>
-                        <label className={styles.formLabel}>CREF</label>
-                        <input className={styles.formInput} placeholder="000000-G/SP" />
-                    </div>
-                    <button className="btn btn-primary" style={{ marginTop: 8 }}>Salvar Alterações</button>
-                </div>
-
-                {/* Workout Settings */}
-                <div className="card" style={{ padding: 24 }}>
-                    <h3 style={{ fontSize: "1.05rem", fontWeight: 700, marginBottom: 20, fontFamily: "var(--font-display)" }}>
-                        Configurações de Treino
-                    </h3>
-                    <div className={styles.formGroup}>
-                        <label className={styles.formLabel}>Validade padrão do treino (semanas)</label>
-                        <select className={styles.formSelect} defaultValue="4">
-                            <option value="3">3 semanas</option>
-                            <option value="4">4 semanas</option>
-                            <option value="6">6 semanas</option>
-                            <option value="8">8 semanas</option>
-                            <option value="12">12 semanas</option>
-                        </select>
-                    </div>
-                    <div className={styles.formGroup}>
-                        <label className={styles.formLabel}>Alerta de expiração (dias antes)</label>
-                        <select className={styles.formSelect} defaultValue="7">
-                            <option value="3">3 dias</option>
-                            <option value="5">5 dias</option>
-                            <option value="7">7 dias</option>
-                            <option value="14">14 dias</option>
-                        </select>
-                    </div>
-                    <button className="btn btn-primary" style={{ marginTop: 8 }}>Salvar</button>
+                    {loading ? (
+                        <p style={{ color: "#888", fontSize: "0.9rem" }}>Carregando...</p>
+                    ) : (
+                        <>
+                            <div className={styles.formGroup}>
+                                <label className={styles.formLabel}>Nome Completo</label>
+                                <input
+                                    className={styles.formInput}
+                                    value={profile.full_name}
+                                    onChange={e => setProfile({ ...profile, full_name: e.target.value })}
+                                />
+                            </div>
+                            <div className={styles.formGroup}>
+                                <label className={styles.formLabel}>E-mail</label>
+                                <input
+                                    className={styles.formInput}
+                                    value={profile.email}
+                                    type="email"
+                                    disabled
+                                    style={{ background: "#f5f5f5", color: "#888" }}
+                                />
+                            </div>
+                            <div className={styles.formGroup}>
+                                <label className={styles.formLabel}>Telefone</label>
+                                <input
+                                    className={styles.formInput}
+                                    value={profile.phone}
+                                    onChange={e => setProfile({ ...profile, phone: e.target.value })}
+                                    placeholder="(11) 99999-0000"
+                                />
+                            </div>
+                            <div className={styles.formGroup}>
+                                <label className={styles.formLabel}>CREF</label>
+                                <input
+                                    className={styles.formInput}
+                                    value={profile.cref}
+                                    onChange={e => setProfile({ ...profile, cref: e.target.value })}
+                                    placeholder="000000-G/SP"
+                                />
+                            </div>
+                            <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 8 }}>
+                                <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
+                                    {saving ? "Salvando..." : "Salvar Alterações"}
+                                </button>
+                                {saved && <span style={{ color: "#4caf50", fontSize: "0.9rem", fontWeight: 600 }}>✓ Salvo!</span>}
+                            </div>
+                        </>
+                    )}
                 </div>
 
                 {/* Subscription Info */}

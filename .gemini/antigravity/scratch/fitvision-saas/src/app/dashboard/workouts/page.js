@@ -73,13 +73,13 @@ export default function WorkoutsPage() {
         setBuilderOpen(true);
     };
 
-    const deleteWorkoutGlobal = (workout) => {
+    const deleteWorkoutGlobal = async (workout) => {
         if (window.confirm(`Excluir a planilha "${workout.type}" do aluno ${workout.clientName}?`)) {
             const student = workout.studentObj;
             const updatedWorkouts = [...student.workouts];
             const index = parseInt(workout.id.split('-').pop(), 10);
             updatedWorkouts.splice(index, 1);
-            saveStudent(student.id, { ...student, workouts: updatedWorkouts });
+            await saveStudent(student.id, { ...student, workouts: updatedWorkouts });
         }
     };
 

@@ -46,19 +46,6 @@ const EQUIPMENT_OPTIONS = [
     "Barra", "Cabo", "Halter", "Maquina", "Peso Corporal", "Outro"
 ];
 
-const STORAGE_KEY = "fitvision_custom_exercises";
-
-function loadCustomExercises() {
-    try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        return raw ? JSON.parse(raw) : [];
-    } catch { return []; }
-}
-
-function saveCustomExercises(list) {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(list)); } catch {}
-}
-
 export default function ExercisesPage() {
     const [activeTab, setActiveTab] = useState("all");
     const [search, setSearch] = useState("");
@@ -66,14 +53,28 @@ export default function ExercisesPage() {
     const [showForm, setShowForm] = useState(false);
     const [form, setForm] = useState({ name: "", muscle: "Peito", equipment: "Halter", videoUrl: "" });
     const [filterMuscle, setFilterMuscle] = useState("Todos");
+    const [saving, setSaving] = useState(false);
 
     useEffect(() => {
-        setCustomExercises(loadCustomExercises());
+        const load = async () => {
+            const { getExercisesDB } = await import("../../../utils/storage");
+            const data = await getExercisesDB();
+            setCustomExercises(data);
+        };
+        load();
     }, []);
 
     const allExercises = [
         ...DEFAULT_EXERCISES,
-        ...customExercises.map((ex, i) => ({ ...ex, id: `custom-${i}`, icon: "⭐" }))
+        ...customExercises.map(ex => ({
+            id: ex.id,
+            name: ex.name,
+            muscle: ex.muscle_group,
+            equipment: ex.equipment,
+            videoUrl: ex.video_url,
+            icon: "⭐",
+            isCustomDb: true,
+        }))
     ];
 
     const muscles = ["Todos", ...Array.from(new Set(allExercises.map(e => e.muscle))).sort()];
@@ -84,23 +85,38 @@ export default function ExercisesPage() {
         return matchSearch && matchMuscle;
     });
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!form.name.trim()) return;
-        const newEx = { ...form, createdAt: new Date().toISOString() };
-        const updated = [...customExercises, newEx];
-        setCustomExercises(updated);
-        saveCustomExercises(updated);
-        setForm({ name: "", muscle: "Peito", equipment: "Halter", videoUrl: "" });
-        setShowForm(false);
-        setActiveTab("all");
-        setSearch(newEx.name);
+        setSaving(true);
+        try {
+            const { createExercise } = await import("../../../utils/storage");
+            const newEx = await createExercise({
+                name: form.name.trim(),
+                muscle_group: form.muscle,
+                equipment: form.equipment,
+                video_url: form.videoUrl || null,
+            });
+            setCustomExercises(prev => [...prev, newEx]);
+            setForm({ name: "", muscle: "Peito", equipment: "Halter", videoUrl: "" });
+            setShowForm(false);
+            setActiveTab("all");
+            setSearch(newEx.name);
+        } catch (err) {
+            alert("Erro ao salvar exercício: " + err.message);
+        } finally {
+            setSaving(false);
+        }
     };
 
-    const handleDelete = (idx) => {
+    const handleDelete = async (id) => {
         if (!window.confirm("Excluir este exercicio?")) return;
-        const updated = customExercises.filter((_, i) => i !== idx);
-        setCustomExercises(updated);
-        saveCustomExercises(updated);
+        try {
+            const { deleteExercise } = await import("../../../utils/storage");
+            await deleteExercise(id);
+            setCustomExercises(prev => prev.filter(ex => ex.id !== id));
+        } catch (err) {
+            alert("Erro ao excluir: " + err.message);
+        }
     };
 
     return (
@@ -182,8 +198,8 @@ export default function ExercisesPage() {
                     </div>
                     <div style={{ display: "flex", gap: "10px", marginTop: "16px", justifyContent: "flex-end" }}>
                         <button className="btn btn-outline" onClick={() => setShowForm(false)}>Cancelar</button>
-                        <button className="btn btn-primary" onClick={handleSave} disabled={!form.name.trim()}>
-                            Salvar Exercicio
+                        <button className="btn btn-primary" onClick={handleSave} disabled={!form.name.trim() || saving}>
+                            {saving ? "Salvando..." : "Salvar Exercicio"}
                         </button>
                     </div>
                 </div>
@@ -230,17 +246,15 @@ export default function ExercisesPage() {
 
                     <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                         {filtered.map((ex) => {
-                            const isCustom = String(ex.id).startsWith("custom-");
-                            const customIdx = isCustom ? parseInt(String(ex.id).split("-")[1]) : -1;
                             return (
                                 <div key={ex.id} style={{
                                     padding: "16px", background: "white", borderRadius: "16px",
-                                    border: `1px solid ${isCustom ? "var(--primary)" : "var(--border)"}`,
+                                    border: `1px solid ${ex.isCustomDb ? "var(--primary)" : "var(--border)"}`,
                                     display: "flex", alignItems: "center", gap: "14px"
                                 }}>
                                     <div style={{
                                         width: 48, height: 48, borderRadius: "12px",
-                                        background: isCustom ? "rgba(126,82,243,0.1)" : "#f0f2f5",
+                                        background: ex.isCustomDb ? "rgba(126,82,243,0.1)" : "#f0f2f5",
                                         display: "flex", alignItems: "center", justifyContent: "center",
                                         fontSize: "1.4rem", flexShrink: 0
                                     }}>
@@ -249,7 +263,7 @@ export default function ExercisesPage() {
                                     <div style={{ flex: 1 }}>
                                         <div style={{ fontWeight: 700, fontSize: "0.95rem", display: "flex", alignItems: "center", gap: "6px" }}>
                                             {ex.name}
-                                            {isCustom && (
+                                            {ex.isCustomDb && (
                                                 <span style={{ fontSize: "0.65rem", background: "var(--primary)", color: "white", borderRadius: "6px", padding: "1px 6px", fontWeight: 600 }}>
                                                     MEU
                                                 </span>
@@ -265,8 +279,8 @@ export default function ExercisesPage() {
                                             </a>
                                         )}
                                     </div>
-                                    {isCustom ? (
-                                        <button onClick={() => handleDelete(customIdx)}
+                                    {ex.isCustomDb ? (
+                                        <button onClick={() => handleDelete(ex.id)}
                                             style={{ background: "none", border: "none", color: "#ff4757", cursor: "pointer", fontSize: "1.1rem", padding: "4px" }}
                                             title="Excluir">
                                             &#128465;

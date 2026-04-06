@@ -20,16 +20,12 @@ function extractYoutubeId(url) {
     return null;
 }
 
-// Busca o videoId na YouTube Data API v3
+// Busca o videoId via API Route (chave nunca exposta no browser)
 async function fetchYoutubeVideoId(query) {
-    const apiKey = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY;
-    if (!apiKey) return null;
     try {
-        const res = await fetch(
-            `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query + ' como fazer academia execução')}&type=video&maxResults=1&key=${apiKey}`
-        );
+        const res = await fetch(`/api/youtube-search?q=${encodeURIComponent(query)}`);
         const data = await res.json();
-        return data.items?.[0]?.id?.videoId || null;
+        return data.videoId || null;
     } catch {
         return null;
     }

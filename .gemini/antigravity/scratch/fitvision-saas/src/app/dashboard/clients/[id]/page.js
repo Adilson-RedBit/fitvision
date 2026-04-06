@@ -52,6 +52,7 @@ export default function StudentProfile() {
 
     const [student, setStudent] = useState(null);
     const [showWorkoutModal, setShowWorkoutModal] = useState(false);
+    const [editingWorkoutIndex, setEditingWorkoutIndex] = useState(null);
     const [savedWorkouts, setSavedWorkouts] = useState([]);
     const [showEditModal, setShowEditModal] = useState(false);
     const [editForm, setEditForm] = useState({ name: '', phone: '' });
@@ -137,6 +138,37 @@ export default function StudentProfile() {
         const link = student.onboardingLink || `${window.location.origin}/onboarding/${student.id}`;
         navigator.clipboard.writeText(link);
         alert('Link copiado! Envie para o aluno preencher a Anamnese.');
+    };
+
+    const handleSendRenewal = () => {
+        const link = `${window.location.origin}/renovacao/${student.id}`;
+        const phone = student.anamnesis?.basics?.phone || student.phone || "";
+        if (!phone) {
+            navigator.clipboard.writeText(link);
+            alert('Link de renovação copiado!\n\n' + link);
+            return;
+        }
+        const cleanPhone = phone.replace(/\D/g, '');
+        const msg = encodeURIComponent(`Ola ${student.name?.split(' ')[0]}! Chegou a hora de renovar seu treino. Preencha sua ficha de renovacao: ${link}`);
+        window.open(`https://wa.me/55${cleanPhone}?text=${msg}`, '_blank');
+    };
+
+    const calcIMC = (weight, height) => {
+        const w = parseFloat(weight);
+        const h = parseFloat(height) / 100;
+        if (!w || !h) return null;
+        return (w / (h * h)).toFixed(1);
+    };
+
+    const getIMCLabel = (imc) => {
+        if (!imc) return null;
+        const v = parseFloat(imc);
+        if (v < 18.5) return { label: 'Abaixo do peso', color: '#2196f3' };
+        if (v < 25)   return { label: 'Peso normal', color: '#4caf50' };
+        if (v < 30)   return { label: 'Sobrepeso', color: '#ff9800' };
+        if (v < 35)   return { label: 'Obesidade I', color: '#f44336' };
+        if (v < 40)   return { label: 'Obesidade II', color: '#b71c1c' };
+        return { label: 'Obesidade III', color: '#7f0000' };
     };
 
     const handleSendWorkout = () => {
@@ -234,6 +266,10 @@ export default function StudentProfile() {
                         <div className={`${styles.actionIcon} ${styles.actionIconGreen}`}>&#128172;</div>
                         <span className={styles.actionLabel}>Enviar WhatsApp</span>
                     </div>
+                    <div className={styles.actionItem} onClick={handleSendRenewal} style={{ cursor: 'pointer' }}>
+                        <div className={styles.actionIcon} style={{ background: '#00b894' }}>&#128257;</div>
+                        <span className={styles.actionLabel}>Ficha de Renovação</span>
+                    </div>
                     <div className={styles.actionItem} onClick={handleDelete} style={{ cursor: 'pointer' }}>
                         <div className={styles.actionIcon} style={{ background: '#ff4757' }}>&#128465;</div>
                         <span className={styles.actionLabel} style={{ color: '#ff4757' }}>Excluir Aluno</span>
@@ -265,6 +301,22 @@ export default function StudentProfile() {
                                 <div className={styles.anamnesisItem}><span className={styles.anamnesisLabel}>Objetivo</span><span className={styles.anamnesisValue}><span className={styles.goalBadge}>{student.anamnesis.basics?.goal || '-'}</span></span></div>
                                 <div className={styles.anamnesisItem}><span className={styles.anamnesisLabel}>Peso</span><span className={styles.anamnesisValue}>{student.anamnesis.basics?.weight || '-'} kg</span></div>
                                 <div className={styles.anamnesisItem}><span className={styles.anamnesisLabel}>Altura</span><span className={styles.anamnesisValue}>{student.anamnesis.basics?.height || '-'} cm</span></div>
+                                {(() => {
+                                    const imc = calcIMC(student.anamnesis.basics?.weight, student.anamnesis.basics?.height);
+                                    const info = getIMCLabel(imc);
+                                    if (!imc) return null;
+                                    return (
+                                        <div className={styles.anamnesisItem} style={{ gridColumn: '1 / -1' }}>
+                                            <span className={styles.anamnesisLabel}>IMC</span>
+                                            <span className={styles.anamnesisValue} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                <strong style={{ fontSize: '1.1rem' }}>{imc}</strong>
+                                                <span style={{ background: info.color + '22', color: info.color, border: `1px solid ${info.color}55`, borderRadius: '20px', padding: '2px 10px', fontSize: '0.8rem', fontWeight: 700 }}>
+                                                    {info.label}
+                                                </span>
+                                            </span>
+                                        </div>
+                                    );
+                                })()}
                             </div>
                         </div>
 
@@ -323,6 +375,92 @@ export default function StudentProfile() {
                                 ))}
                             </div>
                         </div>
+
+                        {/* RENOVAÇÕES */}
+                        {(student.anamnesis.renewals || []).length > 0 && (() => {
+                            const renewals = student.anamnesis.renewals;
+                            const photoSides = [
+                                { id: 'front', label: 'Frente' },
+                                { id: 'back', label: 'Costas' },
+                                { id: 'right', label: 'Perfil D' },
+                                { id: 'left', label: 'Perfil E' },
+                            ];
+                            return (
+                                <div className={styles.anamnesisCard} style={{ marginTop: '12px' }}>
+                                    <h4 className={styles.detailTitle}>Renovacoes de Treino</h4>
+                                    {renewals.map((renewal, ri) => {
+                                        const imc = calcIMC(renewal.basics?.weight, renewal.basics?.height);
+                                        const imcInfo = getIMCLabel(imc);
+                                        const prevPhotos = ri === 0
+                                            ? student.anamnesis.photos
+                                            : renewals[ri - 1].photos;
+                                        return (
+                                            <div key={ri} style={{ marginBottom: ri < renewals.length - 1 ? '24px' : 0 }}>
+                                                {/* Cabeçalho da renovação */}
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px', flexWrap: 'wrap' }}>
+                                                    <span style={{ fontWeight: 800, fontSize: '0.9rem', background: '#7E52F322', color: '#7E52F3', border: '1px solid #7E52F344', borderRadius: '20px', padding: '3px 12px' }}>
+                                                        Renovacao {ri + 1}
+                                                    </span>
+                                                    <span style={{ fontSize: '0.8rem', color: '#888' }}>{renewal.date}</span>
+                                                </div>
+
+                                                {/* Medidas desta renovação */}
+                                                <div className={styles.anamnesisGrid} style={{ marginBottom: '16px' }}>
+                                                    <div className={styles.anamnesisItem}>
+                                                        <span className={styles.anamnesisLabel}>Peso</span>
+                                                        <span className={styles.anamnesisValue}>{renewal.basics?.weight || '-'} kg</span>
+                                                    </div>
+                                                    <div className={styles.anamnesisItem}>
+                                                        <span className={styles.anamnesisLabel}>Altura</span>
+                                                        <span className={styles.anamnesisValue}>{renewal.basics?.height || '-'} cm</span>
+                                                    </div>
+                                                    {imc && (
+                                                        <div className={styles.anamnesisItem} style={{ gridColumn: '1 / -1' }}>
+                                                            <span className={styles.anamnesisLabel}>IMC</span>
+                                                            <span className={styles.anamnesisValue} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                                <strong style={{ fontSize: '1.1rem' }}>{imc}</strong>
+                                                                <span style={{ background: imcInfo.color + '22', color: imcInfo.color, border: `1px solid ${imcInfo.color}55`, borderRadius: '20px', padding: '2px 10px', fontSize: '0.8rem', fontWeight: 700 }}>
+                                                                    {imcInfo.label}
+                                                                </span>
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {/* Comparativo antes / depois */}
+                                                <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#555', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                                    Comparativo de Fotos
+                                                </div>
+                                                {photoSides.map(slot => {
+                                                    const before = prevPhotos?.[slot.id];
+                                                    const after = renewal.photos?.[slot.id];
+                                                    if (!before && !after) return null;
+                                                    return (
+                                                        <div key={slot.id} style={{ marginBottom: '16px' }}>
+                                                            <div style={{ fontSize: '0.75rem', color: '#888', fontWeight: 600, marginBottom: '8px' }}>{slot.label}</div>
+                                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                                                                <div style={{ textAlign: 'center' }}>
+                                                                    <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#888', marginBottom: '4px', textTransform: 'uppercase' }}>Antes</div>
+                                                                    {before
+                                                                        ? <img src={before} alt={`antes-${slot.id}`} style={{ width: '100%', borderRadius: '10px', objectFit: 'cover', aspectRatio: '3/4' }} />
+                                                                        : <div style={{ width: '100%', aspectRatio: '3/4', borderRadius: '10px', background: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#bbb', fontSize: '0.8rem' }}>Sem foto</div>}
+                                                                </div>
+                                                                <div style={{ textAlign: 'center' }}>
+                                                                    <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#4caf50', marginBottom: '4px', textTransform: 'uppercase' }}>Depois</div>
+                                                                    {after
+                                                                        ? <img src={after} alt={`depois-${slot.id}`} style={{ width: '100%', borderRadius: '10px', objectFit: 'cover', aspectRatio: '3/4' }} />
+                                                                        : <div style={{ width: '100%', aspectRatio: '3/4', borderRadius: '10px', background: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#bbb', fontSize: '0.8rem' }}>Sem foto</div>}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            );
+                        })()}
                     </>
                 )}
             </div>
@@ -355,7 +493,7 @@ export default function StudentProfile() {
                 <div className={styles.sectionHeader}>
                     <h3 className={styles.sectionTitle}>Planilhas de treino</h3>
                     <button className="btn btn-primary btn-sm" style={{ background: '#7E52F3', borderRadius: '12px' }}
-                        onClick={() => setShowWorkoutModal(true)} disabled={!student.anamnesis}>
+                        onClick={() => { setEditingWorkoutIndex(null); setShowWorkoutModal(true); }} disabled={!student.anamnesis}>
                         Adicionar +
                     </button>
                 </div>
@@ -379,6 +517,9 @@ export default function StudentProfile() {
                                 </div>
                                 <span className={styles.savedWorkoutStatus} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                     {w.status}
+                                    <button onClick={() => { setEditingWorkoutIndex(i); setShowWorkoutModal(true); }}
+                                        style={{ background: 'none', border: 'none', color: '#7E52F3', cursor: 'pointer', fontSize: '1.1rem', padding: '4px' }}
+                                        title="Editar planilha">&#9998;</button>
                                     <button onClick={() => deleteWorkout(i)}
                                         style={{ background: 'none', border: 'none', color: '#ff4757', cursor: 'pointer', fontSize: '1.1rem', padding: '4px' }}
                                         title="Excluir planilha">&#128465;</button>
@@ -478,23 +619,31 @@ export default function StudentProfile() {
 
             <div style={{ height: '40px' }}></div>
 
-            {/* WORKOUT MODAL */}
+            {/* WORKOUT MODAL — criação e edição */}
             <WorkoutBuilderModal
                 isOpen={showWorkoutModal}
-                onClose={() => setShowWorkoutModal(false)}
+                onClose={() => { setShowWorkoutModal(false); setEditingWorkoutIndex(null); }}
                 onSave={async (plan) => {
                     if (student) {
-                        const updatedStudent = {
-                            ...student, status: "Ativo",
-                            workouts: [...(student.workouts || []), { ...plan, dateSaved: new Date().toISOString() }]
-                        };
+                        const updated = [...(student.workouts || [])];
+                        if (editingWorkoutIndex !== null) {
+                            // Edição: preserva dateSaved original
+                            updated[editingWorkoutIndex] = { ...updated[editingWorkoutIndex], ...plan };
+                        } else {
+                            // Criação nova
+                            updated.push({ ...plan, dateSaved: new Date().toISOString() });
+                        }
+                        const updatedStudent = { ...student, status: "Ativo", workouts: updated };
                         await saveStudent(student.id, updatedStudent);
                         setSavedWorkouts(updatedStudent.workouts);
                         setStudent(updatedStudent);
                     }
                     setShowWorkoutModal(false);
+                    setEditingWorkoutIndex(null);
                 }}
                 student={student}
+                initialWorkouts={editingWorkoutIndex !== null ? savedWorkouts[editingWorkoutIndex]?.workouts : null}
+                modalTitle={editingWorkoutIndex !== null ? 'Editar Planilha' : 'Sugestão de Treino'}
             />
 
             {/* EDIT MODAL */}

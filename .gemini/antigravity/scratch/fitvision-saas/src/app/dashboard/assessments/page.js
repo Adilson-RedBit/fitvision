@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import styles from "../clients/clients.module.css";
-import { getStudentsDB } from "../../../utils/storage";
+import { getStudentsDB, saveStudent } from "../../../utils/storage";
 
 const anamneseQuestions = [
     { id: "injury", label: "Possui alguma lesão ou dor articular?", type: "text", placeholder: "Descreva lesões, dores ou limitações..." },
@@ -20,6 +20,7 @@ export default function AssessmentsPage() {
     const [showModal, setShowModal] = useState(false);
     const [step, setStep] = useState(1);
     const [formData, setFormData] = useState({});
+    const [submitting, setSubmitting] = useState(false);
     const totalSteps = 3;
 
     const updateField = (key, value) => {
@@ -284,13 +285,43 @@ export default function AssessmentsPage() {
                             ) : (
                                 <button
                                     className="btn btn-accent"
-                                    onClick={() => {
-                                        setShowModal(false);
-                                        setStep(1);
-                                        setFormData({});
+                                    disabled={submitting}
+                                    onClick={async () => {
+                                        if (!formData.clientId) { alert("Selecione um aluno."); return; }
+                                        setSubmitting(true);
+                                        try {
+                                            const student = dbStudents.find(s => s.id === formData.clientId);
+                                            if (student) {
+                                                const anamnesis = {
+                                                    ...(student.anamnesis || {}),
+                                                    basics: {
+                                                        ...(student.anamnesis?.basics || {}),
+                                                        goal: formData.goal || student.anamnesis?.basics?.goal || "",
+                                                    },
+                                                    extra: {
+                                                        injury: formData.injury || "",
+                                                        diseases: formData.diseases || "",
+                                                        medications: formData.medications || "",
+                                                        experience: formData.experience || "",
+                                                        frequency: formData.frequency || "",
+                                                        sleepHours: formData.sleepHours || "",
+                                                        nutrition: formData.nutrition || "",
+                                                        goals: formData.goals || "",
+                                                    },
+                                                };
+                                                await saveStudent(student.id, { ...student, anamnesis });
+                                            }
+                                        } catch (err) {
+                                            alert("Erro ao salvar avaliação: " + err.message);
+                                        } finally {
+                                            setSubmitting(false);
+                                            setShowModal(false);
+                                            setStep(1);
+                                            setFormData({});
+                                        }
                                     }}
                                 >
-                                    ✅ Finalizar Avaliação
+                                    {submitting ? "Salvando..." : "✅ Finalizar Avaliação"}
                                 </button>
                             )}
                         </div>
